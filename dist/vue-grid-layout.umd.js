@@ -96,21 +96,6 @@ return /******/ (function(modules) { // webpackBootstrap
 /************************************************************************/
 /******/ ({
 
-/***/ "00c2":
-/***/ (function(module, exports, __webpack_require__) {
-
-// style-loader: Adds some css to the DOM by adding a <style> tag
-
-// load the styles
-var content = __webpack_require__("07e2");
-if(typeof content === 'string') content = [[module.i, content, '']];
-if(content.locals) module.exports = content.locals;
-// add the styles to the DOM
-var add = __webpack_require__("499e").default
-var update = add("214147f1", content, true, {"sourceMap":false,"shadowMode":false});
-
-/***/ }),
-
 /***/ "01f9":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -188,17 +173,30 @@ module.exports = function (Base, NAME, Constructor, next, DEFAULT, IS_SET, FORCE
 
 /***/ }),
 
-/***/ "07e2":
+/***/ "097d":
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__("2350")(false);
-// imports
+"use strict";
+// https://github.com/tc39/proposal-promise-finally
 
+var $export = __webpack_require__("5ca1");
+var core = __webpack_require__("8378");
+var global = __webpack_require__("7726");
+var speciesConstructor = __webpack_require__("ebd6");
+var promiseResolve = __webpack_require__("bcaa");
 
-// module
-exports.push([module.i, "\n.vue-grid-layout{position:relative;transition:height .2s ease\n}", ""]);
-
-// exports
+$export($export.P + $export.R, 'Promise', { 'finally': function (onFinally) {
+  var C = speciesConstructor(this, core.Promise || global.Promise);
+  var isFunction = typeof onFinally == 'function';
+  return this.then(
+    isFunction ? function (x) {
+      return promiseResolve(C, onFinally()).then(function () { return x; });
+    } : onFinally,
+    isFunction ? function (e) {
+      return promiseResolve(C, onFinally()).then(function () { throw e; });
+    } : onFinally
+  );
+} });
 
 
 /***/ }),
@@ -529,22 +527,98 @@ detector.isLegacyOpera = function() {
 
 /***/ }),
 
-/***/ "1eb2":
+/***/ "1991":
 /***/ (function(module, exports, __webpack_require__) {
 
-// This file is imported into lib/wc client bundles.
-
-if (typeof window !== 'undefined') {
-  var i
-  if ((i = window.document.currentScript) && (i = i.src.match(/(.+\/)[^/]+\.js$/))) {
-    __webpack_require__.p = i[1] // eslint-disable-line
+var ctx = __webpack_require__("9b43");
+var invoke = __webpack_require__("31f4");
+var html = __webpack_require__("fab2");
+var cel = __webpack_require__("230e");
+var global = __webpack_require__("7726");
+var process = global.process;
+var setTask = global.setImmediate;
+var clearTask = global.clearImmediate;
+var MessageChannel = global.MessageChannel;
+var Dispatch = global.Dispatch;
+var counter = 0;
+var queue = {};
+var ONREADYSTATECHANGE = 'onreadystatechange';
+var defer, channel, port;
+var run = function () {
+  var id = +this;
+  // eslint-disable-next-line no-prototype-builtins
+  if (queue.hasOwnProperty(id)) {
+    var fn = queue[id];
+    delete queue[id];
+    fn();
+  }
+};
+var listener = function (event) {
+  run.call(event.data);
+};
+// Node.js 0.9+ & IE10+ has setImmediate, otherwise:
+if (!setTask || !clearTask) {
+  setTask = function setImmediate(fn) {
+    var args = [];
+    var i = 1;
+    while (arguments.length > i) args.push(arguments[i++]);
+    queue[++counter] = function () {
+      // eslint-disable-next-line no-new-func
+      invoke(typeof fn == 'function' ? fn : Function(fn), args);
+    };
+    defer(counter);
+    return counter;
+  };
+  clearTask = function clearImmediate(id) {
+    delete queue[id];
+  };
+  // Node.js 0.8-
+  if (__webpack_require__("2d95")(process) == 'process') {
+    defer = function (id) {
+      process.nextTick(ctx(run, id, 1));
+    };
+  // Sphere (JS game engine) Dispatch API
+  } else if (Dispatch && Dispatch.now) {
+    defer = function (id) {
+      Dispatch.now(ctx(run, id, 1));
+    };
+  // Browsers with MessageChannel, includes WebWorkers
+  } else if (MessageChannel) {
+    channel = new MessageChannel();
+    port = channel.port2;
+    channel.port1.onmessage = listener;
+    defer = ctx(port.postMessage, port, 1);
+  // Browsers with postMessage, skip WebWorkers
+  // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'
+  } else if (global.addEventListener && typeof postMessage == 'function' && !global.importScripts) {
+    defer = function (id) {
+      global.postMessage(id + '', '*');
+    };
+    global.addEventListener('message', listener, false);
+  // IE8-
+  } else if (ONREADYSTATECHANGE in cel('script')) {
+    defer = function (id) {
+      html.appendChild(cel('script'))[ONREADYSTATECHANGE] = function () {
+        html.removeChild(this);
+        run.call(id);
+      };
+    };
+  // Rest old browsers
+  } else {
+    defer = function (id) {
+      setTimeout(ctx(run, id, 1), 0);
+    };
   }
 }
+module.exports = {
+  set: setTask,
+  clear: clearTask
+};
 
 
 /***/ }),
 
-/***/ "1fb2":
+/***/ "1e88":
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__("2350")(false);
@@ -552,43 +626,26 @@ exports = module.exports = __webpack_require__("2350")(false);
 
 
 // module
-exports.push([module.i, "\n.vue-grid-item{transition:all .2s ease;transition-property:left,top,right\n}\n.vue-grid-item.cssTransforms{left:0;right:auto;transition-property:transform\n}\n.vue-grid-item.cssTransforms.render-rtl{left:auto;right:0\n}\n.vue-grid-item.resizing{opacity:.6;z-index:3\n}\n.vue-grid-item.vue-draggable-dragging{transition:none;z-index:3\n}\n.vue-grid-item.vue-grid-placeholder{-moz-user-select:none;-ms-user-select:none;-o-user-select:none;-webkit-user-select:none;background:red;opacity:.2;transition-duration:.1s;user-select:none;z-index:2\n}\n.vue-grid-item>.vue-resizable-handle{background:url(\"data:image/svg+xml;base64,PHN2ZyBzdHlsZT0iYmFja2dyb3VuZC1jb2xvcjojZmZmZmZmMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjYiIGhlaWdodD0iNiI+PHBhdGggZD0iTTYgNkgwVjQuMmg0LjJWMEg2djZ6IiBvcGFjaXR5PSIuMzAyIi8+PC9zdmc+\");background-origin:content-box;background-position:100% 100%;background-repeat:no-repeat;bottom:0;box-sizing:border-box;cursor:se-resize;height:20px;padding:0 3px 3px 0;position:absolute;right:0;width:20px\n}\n.vue-grid-item>.vue-rtl-resizable-handle{background:url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbD0ibm9uZSIgZD0iTS0xLTFoMTJ2MTJILTF6Ii8+PGc+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InVuZGVmaW5lZCIgc3Ryb2tlLWxpbmVqb2luPSJ1bmRlZmluZWQiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2U9IiMwMDAiIGZpbGw9Im5vbmUiIGQ9Ik0xNDQuODIxLTM4LjM5M2wtMjAuMzU3LTMxLjc4NSIvPjxwYXRoIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLWxpbmVjYXA9InVuZGVmaW5lZCIgc3Ryb2tlLWxpbmVqb2luPSJ1bmRlZmluZWQiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgZD0iTS45NDctLjAxOHY5LjEyNU0tLjY1NiA5aDEwLjczIi8+PC9nPjwvc3ZnPg==);background-origin:content-box;background-position:0 100%;background-repeat:no-repeat;bottom:0;cursor:sw-resize;left:0;padding-left:3px;right:auto\n}\n.vue-grid-item.disable-userselect{user-select:none\n}", ""]);
+exports.push([module.i, "\n.vue-grid-layout{position:relative;-webkit-transition:height .2s ease;transition:height .2s ease\n}", ""]);
 
 // exports
 
 
 /***/ }),
 
-/***/ "214f":
+/***/ "1fa8":
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-var hide = __webpack_require__("32e9");
-var redefine = __webpack_require__("2aba");
-var fails = __webpack_require__("79e5");
-var defined = __webpack_require__("be13");
-var wks = __webpack_require__("2b4c");
-
-module.exports = function (KEY, length, exec) {
-  var SYMBOL = wks(KEY);
-  var fns = exec(defined, SYMBOL, ''[KEY]);
-  var strfn = fns[0];
-  var rxfn = fns[1];
-  if (fails(function () {
-    var O = {};
-    O[SYMBOL] = function () { return 7; };
-    return ''[KEY](O) != 7;
-  })) {
-    redefine(String.prototype, KEY, strfn);
-    hide(RegExp.prototype, SYMBOL, length == 2
-      // 21.2.5.8 RegExp.prototype[@@replace](string, replaceValue)
-      // 21.2.5.11 RegExp.prototype[@@split](string, limit)
-      ? function (string, arg) { return rxfn.call(string, this, arg); }
-      // 21.2.5.6 RegExp.prototype[@@match](string)
-      // 21.2.5.9 RegExp.prototype[@@search](string)
-      : function (string) { return rxfn.call(string, this); }
-    );
+// call something on iterator step with safe closing on error
+var anObject = __webpack_require__("cb7c");
+module.exports = function (iterator, fn, value, entries) {
+  try {
+    return entries ? fn(anObject(value)[0], value[1]) : fn(value);
+  // 7.4.6 IteratorClose(iterator, completion)
+  } catch (e) {
+    var ret = iterator['return'];
+    if (ret !== undefined) anObject(ret.call(iterator));
+    throw e;
   }
 };
 
@@ -688,6 +745,51 @@ function toComment(sourceMap) {
 
 	return '/*# ' + data + ' */';
 }
+
+
+/***/ }),
+
+/***/ "23c6":
+/***/ (function(module, exports, __webpack_require__) {
+
+// getting tag from 19.1.3.6 Object.prototype.toString()
+var cof = __webpack_require__("2d95");
+var TAG = __webpack_require__("2b4c")('toStringTag');
+// ES3 wrong here
+var ARG = cof(function () { return arguments; }()) == 'Arguments';
+
+// fallback for IE11 Script Access Denied error
+var tryGet = function (it, key) {
+  try {
+    return it[key];
+  } catch (e) { /* empty */ }
+};
+
+module.exports = function (it) {
+  var O, T, B;
+  return it === undefined ? 'Undefined' : it === null ? 'Null'
+    // @@toStringTag case
+    : typeof (T = tryGet(O = Object(it), TAG)) == 'string' ? T
+    // builtinTag case
+    : ARG ? cof(O)
+    // ES3 arguments fallback
+    : (B = cof(O)) == 'Object' && typeof O.callee == 'function' ? 'Arguments' : B;
+};
+
+
+/***/ }),
+
+/***/ "27ee":
+/***/ (function(module, exports, __webpack_require__) {
+
+var classof = __webpack_require__("23c6");
+var ITERATOR = __webpack_require__("2b4c")('iterator');
+var Iterators = __webpack_require__("84f2");
+module.exports = __webpack_require__("8378").getIteratorMethod = function (it) {
+  if (it != undefined) return it[ITERATOR]
+    || it['@@iterator']
+    || Iterators[classof(it)];
+};
 
 
 /***/ }),
@@ -842,18 +944,24 @@ module.exports = function (it) {
 
 /***/ }),
 
-/***/ "2f21":
-/***/ (function(module, exports, __webpack_require__) {
+/***/ "31f4":
+/***/ (function(module, exports) {
 
-"use strict";
-
-var fails = __webpack_require__("79e5");
-
-module.exports = function (method, arg) {
-  return !!method && fails(function () {
-    // eslint-disable-next-line no-useless-call
-    arg ? method.call(null, function () { /* empty */ }, 1) : method.call(null);
-  });
+// fast apply, http://jsperf.lnkit.com/fast-apply/5
+module.exports = function (fn, args, that) {
+  var un = that === undefined;
+  switch (args.length) {
+    case 0: return un ? fn()
+                      : fn.call(that);
+    case 1: return un ? fn(args[0])
+                      : fn.call(that, args[0]);
+    case 2: return un ? fn(args[0], args[1])
+                      : fn.call(that, args[0], args[1]);
+    case 3: return un ? fn(args[0], args[1], args[2])
+                      : fn.call(that, args[0], args[1], args[2]);
+    case 4: return un ? fn(args[0], args[1], args[2], args[3])
+                      : fn.call(that, args[0], args[1], args[2], args[3]);
+  } return fn.apply(that, args);
 };
 
 
@@ -869,6 +977,21 @@ module.exports = __webpack_require__("9e1e") ? function (object, key, value) {
 } : function (object, key, value) {
   object[key] = value;
   return object;
+};
+
+
+/***/ }),
+
+/***/ "33a4":
+/***/ (function(module, exports, __webpack_require__) {
+
+// check on default Array iterator
+var Iterators = __webpack_require__("84f2");
+var ITERATOR = __webpack_require__("2b4c")('iterator');
+var ArrayProto = Array.prototype;
+
+module.exports = function (it) {
+  return it !== undefined && (Iterators.Array === it || ArrayProto[ITERATOR] === it);
 };
 
 
@@ -911,22 +1034,6 @@ module.exports = function (Constructor, NAME, next) {
   Constructor.prototype = create(IteratorPrototype, { next: descriptor(1, next) });
   setToStringTag(Constructor, NAME + ' Iterator');
 };
-
-
-/***/ }),
-
-/***/ "456d":
-/***/ (function(module, exports, __webpack_require__) {
-
-// 19.1.2.14 Object.keys(O)
-var toObject = __webpack_require__("4bf8");
-var $keys = __webpack_require__("0d58");
-
-__webpack_require__("5eda")('keys', function () {
-  return function keys(it) {
-    return $keys(toObject(it));
-  };
-});
 
 
 /***/ }),
@@ -1290,6 +1397,38 @@ module.exports = function(idHandler) {
 
 /***/ }),
 
+/***/ "4a59":
+/***/ (function(module, exports, __webpack_require__) {
+
+var ctx = __webpack_require__("9b43");
+var call = __webpack_require__("1fa8");
+var isArrayIter = __webpack_require__("33a4");
+var anObject = __webpack_require__("cb7c");
+var toLength = __webpack_require__("9def");
+var getIterFn = __webpack_require__("27ee");
+var BREAK = {};
+var RETURN = {};
+var exports = module.exports = function (iterable, entries, fn, that, ITERATOR) {
+  var iterFn = ITERATOR ? function () { return iterable; } : getIterFn(iterable);
+  var f = ctx(fn, that, entries ? 2 : 1);
+  var index = 0;
+  var length, step, iterator, result;
+  if (typeof iterFn != 'function') throw TypeError(iterable + ' is not iterable!');
+  // fast case for arrays with default iterator
+  if (isArrayIter(iterFn)) for (length = toLength(iterable.length); length > index; index++) {
+    result = entries ? f(anObject(step = iterable[index])[0], step[1]) : f(iterable[index]);
+    if (result === BREAK || result === RETURN) return result;
+  } else for (iterator = iterFn.call(iterable); !(step = iterator.next()).done;) {
+    result = call(iterator, f, step.value, entries);
+    if (result === BREAK || result === RETURN) return result;
+  }
+};
+exports.BREAK = BREAK;
+exports.RETURN = RETURN;
+
+
+/***/ }),
+
 /***/ "4bf8":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1388,6 +1527,300 @@ exports.f = {}.propertyIsEnumerable;
 
 /***/ }),
 
+/***/ "551c":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var LIBRARY = __webpack_require__("2d00");
+var global = __webpack_require__("7726");
+var ctx = __webpack_require__("9b43");
+var classof = __webpack_require__("23c6");
+var $export = __webpack_require__("5ca1");
+var isObject = __webpack_require__("d3f4");
+var aFunction = __webpack_require__("d8e8");
+var anInstance = __webpack_require__("f605");
+var forOf = __webpack_require__("4a59");
+var speciesConstructor = __webpack_require__("ebd6");
+var task = __webpack_require__("1991").set;
+var microtask = __webpack_require__("8079")();
+var newPromiseCapabilityModule = __webpack_require__("a5b8");
+var perform = __webpack_require__("9c80");
+var userAgent = __webpack_require__("a25f");
+var promiseResolve = __webpack_require__("bcaa");
+var PROMISE = 'Promise';
+var TypeError = global.TypeError;
+var process = global.process;
+var versions = process && process.versions;
+var v8 = versions && versions.v8 || '';
+var $Promise = global[PROMISE];
+var isNode = classof(process) == 'process';
+var empty = function () { /* empty */ };
+var Internal, newGenericPromiseCapability, OwnPromiseCapability, Wrapper;
+var newPromiseCapability = newGenericPromiseCapability = newPromiseCapabilityModule.f;
+
+var USE_NATIVE = !!function () {
+  try {
+    // correct subclassing with @@species support
+    var promise = $Promise.resolve(1);
+    var FakePromise = (promise.constructor = {})[__webpack_require__("2b4c")('species')] = function (exec) {
+      exec(empty, empty);
+    };
+    // unhandled rejections tracking support, NodeJS Promise without it fails @@species test
+    return (isNode || typeof PromiseRejectionEvent == 'function')
+      && promise.then(empty) instanceof FakePromise
+      // v8 6.6 (Node 10 and Chrome 66) have a bug with resolving custom thenables
+      // https://bugs.chromium.org/p/chromium/issues/detail?id=830565
+      // we can't detect it synchronously, so just check versions
+      && v8.indexOf('6.6') !== 0
+      && userAgent.indexOf('Chrome/66') === -1;
+  } catch (e) { /* empty */ }
+}();
+
+// helpers
+var isThenable = function (it) {
+  var then;
+  return isObject(it) && typeof (then = it.then) == 'function' ? then : false;
+};
+var notify = function (promise, isReject) {
+  if (promise._n) return;
+  promise._n = true;
+  var chain = promise._c;
+  microtask(function () {
+    var value = promise._v;
+    var ok = promise._s == 1;
+    var i = 0;
+    var run = function (reaction) {
+      var handler = ok ? reaction.ok : reaction.fail;
+      var resolve = reaction.resolve;
+      var reject = reaction.reject;
+      var domain = reaction.domain;
+      var result, then, exited;
+      try {
+        if (handler) {
+          if (!ok) {
+            if (promise._h == 2) onHandleUnhandled(promise);
+            promise._h = 1;
+          }
+          if (handler === true) result = value;
+          else {
+            if (domain) domain.enter();
+            result = handler(value); // may throw
+            if (domain) {
+              domain.exit();
+              exited = true;
+            }
+          }
+          if (result === reaction.promise) {
+            reject(TypeError('Promise-chain cycle'));
+          } else if (then = isThenable(result)) {
+            then.call(result, resolve, reject);
+          } else resolve(result);
+        } else reject(value);
+      } catch (e) {
+        if (domain && !exited) domain.exit();
+        reject(e);
+      }
+    };
+    while (chain.length > i) run(chain[i++]); // variable length - can't use forEach
+    promise._c = [];
+    promise._n = false;
+    if (isReject && !promise._h) onUnhandled(promise);
+  });
+};
+var onUnhandled = function (promise) {
+  task.call(global, function () {
+    var value = promise._v;
+    var unhandled = isUnhandled(promise);
+    var result, handler, console;
+    if (unhandled) {
+      result = perform(function () {
+        if (isNode) {
+          process.emit('unhandledRejection', value, promise);
+        } else if (handler = global.onunhandledrejection) {
+          handler({ promise: promise, reason: value });
+        } else if ((console = global.console) && console.error) {
+          console.error('Unhandled promise rejection', value);
+        }
+      });
+      // Browsers should not trigger `rejectionHandled` event if it was handled here, NodeJS - should
+      promise._h = isNode || isUnhandled(promise) ? 2 : 1;
+    } promise._a = undefined;
+    if (unhandled && result.e) throw result.v;
+  });
+};
+var isUnhandled = function (promise) {
+  return promise._h !== 1 && (promise._a || promise._c).length === 0;
+};
+var onHandleUnhandled = function (promise) {
+  task.call(global, function () {
+    var handler;
+    if (isNode) {
+      process.emit('rejectionHandled', promise);
+    } else if (handler = global.onrejectionhandled) {
+      handler({ promise: promise, reason: promise._v });
+    }
+  });
+};
+var $reject = function (value) {
+  var promise = this;
+  if (promise._d) return;
+  promise._d = true;
+  promise = promise._w || promise; // unwrap
+  promise._v = value;
+  promise._s = 2;
+  if (!promise._a) promise._a = promise._c.slice();
+  notify(promise, true);
+};
+var $resolve = function (value) {
+  var promise = this;
+  var then;
+  if (promise._d) return;
+  promise._d = true;
+  promise = promise._w || promise; // unwrap
+  try {
+    if (promise === value) throw TypeError("Promise can't be resolved itself");
+    if (then = isThenable(value)) {
+      microtask(function () {
+        var wrapper = { _w: promise, _d: false }; // wrap
+        try {
+          then.call(value, ctx($resolve, wrapper, 1), ctx($reject, wrapper, 1));
+        } catch (e) {
+          $reject.call(wrapper, e);
+        }
+      });
+    } else {
+      promise._v = value;
+      promise._s = 1;
+      notify(promise, false);
+    }
+  } catch (e) {
+    $reject.call({ _w: promise, _d: false }, e); // wrap
+  }
+};
+
+// constructor polyfill
+if (!USE_NATIVE) {
+  // 25.4.3.1 Promise(executor)
+  $Promise = function Promise(executor) {
+    anInstance(this, $Promise, PROMISE, '_h');
+    aFunction(executor);
+    Internal.call(this);
+    try {
+      executor(ctx($resolve, this, 1), ctx($reject, this, 1));
+    } catch (err) {
+      $reject.call(this, err);
+    }
+  };
+  // eslint-disable-next-line no-unused-vars
+  Internal = function Promise(executor) {
+    this._c = [];             // <- awaiting reactions
+    this._a = undefined;      // <- checked in isUnhandled reactions
+    this._s = 0;              // <- state
+    this._d = false;          // <- done
+    this._v = undefined;      // <- value
+    this._h = 0;              // <- rejection state, 0 - default, 1 - handled, 2 - unhandled
+    this._n = false;          // <- notify
+  };
+  Internal.prototype = __webpack_require__("dcbc")($Promise.prototype, {
+    // 25.4.5.3 Promise.prototype.then(onFulfilled, onRejected)
+    then: function then(onFulfilled, onRejected) {
+      var reaction = newPromiseCapability(speciesConstructor(this, $Promise));
+      reaction.ok = typeof onFulfilled == 'function' ? onFulfilled : true;
+      reaction.fail = typeof onRejected == 'function' && onRejected;
+      reaction.domain = isNode ? process.domain : undefined;
+      this._c.push(reaction);
+      if (this._a) this._a.push(reaction);
+      if (this._s) notify(this, false);
+      return reaction.promise;
+    },
+    // 25.4.5.1 Promise.prototype.catch(onRejected)
+    'catch': function (onRejected) {
+      return this.then(undefined, onRejected);
+    }
+  });
+  OwnPromiseCapability = function () {
+    var promise = new Internal();
+    this.promise = promise;
+    this.resolve = ctx($resolve, promise, 1);
+    this.reject = ctx($reject, promise, 1);
+  };
+  newPromiseCapabilityModule.f = newPromiseCapability = function (C) {
+    return C === $Promise || C === Wrapper
+      ? new OwnPromiseCapability(C)
+      : newGenericPromiseCapability(C);
+  };
+}
+
+$export($export.G + $export.W + $export.F * !USE_NATIVE, { Promise: $Promise });
+__webpack_require__("7f20")($Promise, PROMISE);
+__webpack_require__("7a56")(PROMISE);
+Wrapper = __webpack_require__("8378")[PROMISE];
+
+// statics
+$export($export.S + $export.F * !USE_NATIVE, PROMISE, {
+  // 25.4.4.5 Promise.reject(r)
+  reject: function reject(r) {
+    var capability = newPromiseCapability(this);
+    var $$reject = capability.reject;
+    $$reject(r);
+    return capability.promise;
+  }
+});
+$export($export.S + $export.F * (LIBRARY || !USE_NATIVE), PROMISE, {
+  // 25.4.4.6 Promise.resolve(x)
+  resolve: function resolve(x) {
+    return promiseResolve(LIBRARY && this === Wrapper ? $Promise : this, x);
+  }
+});
+$export($export.S + $export.F * !(USE_NATIVE && __webpack_require__("5cc5")(function (iter) {
+  $Promise.all(iter)['catch'](empty);
+})), PROMISE, {
+  // 25.4.4.1 Promise.all(iterable)
+  all: function all(iterable) {
+    var C = this;
+    var capability = newPromiseCapability(C);
+    var resolve = capability.resolve;
+    var reject = capability.reject;
+    var result = perform(function () {
+      var values = [];
+      var index = 0;
+      var remaining = 1;
+      forOf(iterable, false, function (promise) {
+        var $index = index++;
+        var alreadyCalled = false;
+        values.push(undefined);
+        remaining++;
+        C.resolve(promise).then(function (value) {
+          if (alreadyCalled) return;
+          alreadyCalled = true;
+          values[$index] = value;
+          --remaining || resolve(values);
+        }, reject);
+      });
+      --remaining || resolve(values);
+    });
+    if (result.e) reject(result.v);
+    return capability.promise;
+  },
+  // 25.4.4.4 Promise.race(iterable)
+  race: function race(iterable) {
+    var C = this;
+    var capability = newPromiseCapability(C);
+    var reject = capability.reject;
+    var result = perform(function () {
+      forOf(iterable, false, function (promise) {
+        C.resolve(promise).then(capability.resolve, reject);
+      });
+    });
+    if (result.e) reject(result.v);
+    return capability.promise;
+  }
+});
+
+
+/***/ }),
+
 /***/ "5537":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1402,37 +1835,6 @@ var store = global[SHARED] || (global[SHARED] = {});
   version: core.version,
   mode: __webpack_require__("2d00") ? 'pure' : 'global',
   copyright: '© 2018 Denis Pushkarev (zloirock.ru)'
-});
-
-
-/***/ }),
-
-/***/ "55dd":
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var $export = __webpack_require__("5ca1");
-var aFunction = __webpack_require__("d8e8");
-var toObject = __webpack_require__("4bf8");
-var fails = __webpack_require__("79e5");
-var $sort = [].sort;
-var test = [1, 2, 3];
-
-$export($export.P + $export.F * (fails(function () {
-  // IE8-
-  test.sort(undefined);
-}) || !fails(function () {
-  // V8 bug
-  test.sort(null);
-  // Old WebKit
-}) || !__webpack_require__("2f21")($sort)), 'Array', {
-  // 22.1.3.25 Array.prototype.sort(comparefn)
-  sort: function sort(comparefn) {
-    return comparefn === undefined
-      ? $sort.call(toObject(this))
-      : $sort.call(toObject(this), aFunction(comparefn));
-  }
 });
 
 
@@ -1548,6 +1950,35 @@ module.exports = $export;
 
 /***/ }),
 
+/***/ "5cc5":
+/***/ (function(module, exports, __webpack_require__) {
+
+var ITERATOR = __webpack_require__("2b4c")('iterator');
+var SAFE_CLOSING = false;
+
+try {
+  var riter = [7][ITERATOR]();
+  riter['return'] = function () { SAFE_CLOSING = true; };
+  // eslint-disable-next-line no-throw-literal
+  Array.from(riter, function () { throw 2; });
+} catch (e) { /* empty */ }
+
+module.exports = function (exec, skipClosing) {
+  if (!skipClosing && !SAFE_CLOSING) return false;
+  var safe = false;
+  try {
+    var arr = [7];
+    var iter = arr[ITERATOR]();
+    iter.next = function () { return { done: safe = true }; };
+    arr[ITERATOR] = function () { return iter; };
+    exec(arr);
+  } catch (e) { /* empty */ }
+  return safe;
+};
+
+
+/***/ }),
+
 /***/ "5dbc":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1568,27 +1999,10 @@ module.exports = function (that, target, C) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("e8cd");
-/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("67dd");
+/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
 /* unused harmony reexport * */
- /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
-
-/***/ }),
-
-/***/ "5eda":
-/***/ (function(module, exports, __webpack_require__) {
-
-// most Object methods by ES6 should accept primitives
-var $export = __webpack_require__("5ca1");
-var core = __webpack_require__("8378");
-var fails = __webpack_require__("79e5");
-module.exports = function (KEY, exec) {
-  var fn = (core.Object || {})[KEY] || Object[KEY];
-  var exp = {};
-  exp[KEY] = exec(fn);
-  $export($export.S + $export.F * fails(function () { fn(1); }), 'Object', exp);
-};
-
+ /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridItem_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
 
 /***/ }),
 
@@ -1614,6 +2028,21 @@ module.exports = Object('z').propertyIsEnumerable(0) ? Object : function (it) {
   return cof(it) == 'String' ? it.split('') : Object(it);
 };
 
+
+/***/ }),
+
+/***/ "67dd":
+/***/ (function(module, exports, __webpack_require__) {
+
+// style-loader: Adds some css to the DOM by adding a <style> tag
+
+// load the styles
+var content = __webpack_require__("f2e8");
+if(typeof content === 'string') content = [[module.i, content, '']];
+if(content.locals) module.exports = content.locals;
+// add the styles to the DOM
+var add = __webpack_require__("499e").default
+var update = add("517c2041", content, true, {"sourceMap":false,"shadowMode":false});
 
 /***/ }),
 
@@ -1701,6 +2130,27 @@ module.exports = function (exec) {
 
 /***/ }),
 
+/***/ "7a56":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var global = __webpack_require__("7726");
+var dP = __webpack_require__("86cc");
+var DESCRIPTORS = __webpack_require__("9e1e");
+var SPECIES = __webpack_require__("2b4c")('species');
+
+module.exports = function (KEY) {
+  var C = global[KEY];
+  if (DESCRIPTORS && C && !C[SPECIES]) dP.f(C, SPECIES, {
+    configurable: true,
+    get: function () { return this; }
+  });
+};
+
+
+/***/ }),
+
 /***/ "7f20":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1715,26 +2165,94 @@ module.exports = function (it, tag, stat) {
 
 /***/ }),
 
-/***/ "7f7f":
+/***/ "8079":
 /***/ (function(module, exports, __webpack_require__) {
 
-var dP = __webpack_require__("86cc").f;
-var FProto = Function.prototype;
-var nameRE = /^\s*function ([^ (]*)/;
-var NAME = 'name';
+var global = __webpack_require__("7726");
+var macrotask = __webpack_require__("1991").set;
+var Observer = global.MutationObserver || global.WebKitMutationObserver;
+var process = global.process;
+var Promise = global.Promise;
+var isNode = __webpack_require__("2d95")(process) == 'process';
 
-// 19.2.4.2 name
-NAME in FProto || __webpack_require__("9e1e") && dP(FProto, NAME, {
-  configurable: true,
-  get: function () {
-    try {
-      return ('' + this).match(nameRE)[1];
-    } catch (e) {
-      return '';
-    }
+module.exports = function () {
+  var head, last, notify;
+
+  var flush = function () {
+    var parent, fn;
+    if (isNode && (parent = process.domain)) parent.exit();
+    while (head) {
+      fn = head.fn;
+      head = head.next;
+      try {
+        fn();
+      } catch (e) {
+        if (head) notify();
+        else last = undefined;
+        throw e;
+      }
+    } last = undefined;
+    if (parent) parent.enter();
+  };
+
+  // Node.js
+  if (isNode) {
+    notify = function () {
+      process.nextTick(flush);
+    };
+  // browsers with MutationObserver, except iOS Safari - https://github.com/zloirock/core-js/issues/339
+  } else if (Observer && !(global.navigator && global.navigator.standalone)) {
+    var toggle = true;
+    var node = document.createTextNode('');
+    new Observer(flush).observe(node, { characterData: true }); // eslint-disable-line no-new
+    notify = function () {
+      node.data = toggle = !toggle;
+    };
+  // environments with maybe non-completely correct, but existent Promise
+  } else if (Promise && Promise.resolve) {
+    // Promise.resolve without an argument throws an error in LG WebOS 2
+    var promise = Promise.resolve(undefined);
+    notify = function () {
+      promise.then(flush);
+    };
+  // for other environments - macrotask based on:
+  // - setImmediate
+  // - MessageChannel
+  // - window.postMessag
+  // - onreadystatechange
+  // - setTimeout
+  } else {
+    notify = function () {
+      // strange IE + webpack dev server bug - use .call(global)
+      macrotask.call(global, flush);
+    };
   }
-});
 
+  return function (fn) {
+    var task = { fn: fn, next: undefined };
+    if (last) last.next = task;
+    if (!head) {
+      head = task;
+      notify();
+    } last = task;
+  };
+};
+
+
+/***/ }),
+
+/***/ "80c9":
+/***/ (function(module, exports, __webpack_require__) {
+
+// style-loader: Adds some css to the DOM by adding a <style> tag
+
+// load the styles
+var content = __webpack_require__("1e88");
+if(typeof content === 'string') content = [[module.i, content, '']];
+if(content.locals) module.exports = content.locals;
+// add the styles to the DOM
+var add = __webpack_require__("499e").default
+var update = add("57e1d761", content, true, {"sourceMap":false,"shadowMode":false});
 
 /***/ }),
 
@@ -1872,6 +2390,20 @@ module.exports = function (key) {
 
 /***/ }),
 
+/***/ "9c80":
+/***/ (function(module, exports) {
+
+module.exports = function (exec) {
+  try {
+    return { e: false, v: exec() };
+  } catch (e) {
+    return { e: true, v: e };
+  }
+};
+
+
+/***/ }),
+
 /***/ "9def":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -1896,21 +2428,39 @@ module.exports = !__webpack_require__("79e5")(function () {
 
 /***/ }),
 
-/***/ "a481":
+/***/ "a25f":
 /***/ (function(module, exports, __webpack_require__) {
 
-// @@replace logic
-__webpack_require__("214f")('replace', 2, function (defined, REPLACE, $replace) {
-  // 21.1.3.14 String.prototype.replace(searchValue, replaceValue)
-  return [function replace(searchValue, replaceValue) {
-    'use strict';
-    var O = defined(this);
-    var fn = searchValue == undefined ? undefined : searchValue[REPLACE];
-    return fn !== undefined
-      ? fn.call(searchValue, O, replaceValue)
-      : $replace.call(String(O), searchValue, replaceValue);
-  }, $replace];
-});
+var global = __webpack_require__("7726");
+var navigator = global.navigator;
+
+module.exports = navigator && navigator.userAgent || '';
+
+
+/***/ }),
+
+/***/ "a5b8":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+// 25.4.1.5 NewPromiseCapability(C)
+var aFunction = __webpack_require__("d8e8");
+
+function PromiseCapability(C) {
+  var resolve, reject;
+  this.promise = new C(function ($$resolve, $$reject) {
+    if (resolve !== undefined || reject !== undefined) throw TypeError('Bad Promise constructor');
+    resolve = $$resolve;
+    reject = $$reject;
+  });
+  this.resolve = aFunction(resolve);
+  this.reject = aFunction(reject);
+}
+
+module.exports.f = function (C) {
+  return new PromiseCapability(C);
+};
 
 
 /***/ }),
@@ -2002,71 +2552,6 @@ module.exports = function(quiet) {
 
 /***/ }),
 
-/***/ "ac6a":
-/***/ (function(module, exports, __webpack_require__) {
-
-var $iterators = __webpack_require__("cadf");
-var getKeys = __webpack_require__("0d58");
-var redefine = __webpack_require__("2aba");
-var global = __webpack_require__("7726");
-var hide = __webpack_require__("32e9");
-var Iterators = __webpack_require__("84f2");
-var wks = __webpack_require__("2b4c");
-var ITERATOR = wks('iterator');
-var TO_STRING_TAG = wks('toStringTag');
-var ArrayValues = Iterators.Array;
-
-var DOMIterables = {
-  CSSRuleList: true, // TODO: Not spec compliant, should be false.
-  CSSStyleDeclaration: false,
-  CSSValueList: false,
-  ClientRectList: false,
-  DOMRectList: false,
-  DOMStringList: false,
-  DOMTokenList: true,
-  DataTransferItemList: false,
-  FileList: false,
-  HTMLAllCollection: false,
-  HTMLCollection: false,
-  HTMLFormElement: false,
-  HTMLSelectElement: false,
-  MediaList: true, // TODO: Not spec compliant, should be false.
-  MimeTypeArray: false,
-  NamedNodeMap: false,
-  NodeList: true,
-  PaintRequestList: false,
-  Plugin: false,
-  PluginArray: false,
-  SVGLengthList: false,
-  SVGNumberList: false,
-  SVGPathSegList: false,
-  SVGPointList: false,
-  SVGStringList: false,
-  SVGTransformList: false,
-  SourceBufferList: false,
-  StyleSheetList: true, // TODO: Not spec compliant, should be false.
-  TextTrackCueList: false,
-  TextTrackList: false,
-  TouchList: false
-};
-
-for (var collections = getKeys(DOMIterables), i = 0; i < collections.length; i++) {
-  var NAME = collections[i];
-  var explicit = DOMIterables[NAME];
-  var Collection = global[NAME];
-  var proto = Collection && Collection.prototype;
-  var key;
-  if (proto) {
-    if (!proto[ITERATOR]) hide(proto, ITERATOR, ArrayValues);
-    if (!proto[TO_STRING_TAG]) hide(proto, TO_STRING_TAG, NAME);
-    Iterators[NAME] = ArrayValues;
-    if (explicit) for (key in $iterators) if (!proto[key]) redefine(proto, key, $iterators[key], true);
-  }
-}
-
-
-/***/ }),
-
 /***/ "b770":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2089,6 +2574,25 @@ utils.forEach = function(collection, callback) {
             return result;
         }
     }
+};
+
+
+/***/ }),
+
+/***/ "bcaa":
+/***/ (function(module, exports, __webpack_require__) {
+
+var anObject = __webpack_require__("cb7c");
+var isObject = __webpack_require__("d3f4");
+var newPromiseCapability = __webpack_require__("a5b8");
+
+module.exports = function (C, x) {
+  anObject(C);
+  if (isObject(x) && x.constructor === C) return x;
+  var promiseCapability = newPromiseCapability.f(C);
+  var resolve = promiseCapability.resolve;
+  resolve(x);
+  return promiseCapability.promise;
 };
 
 
@@ -3175,6 +3679,18 @@ module.exports = function (it) {
 
 /***/ }),
 
+/***/ "dcbc":
+/***/ (function(module, exports, __webpack_require__) {
+
+var redefine = __webpack_require__("2aba");
+module.exports = function (target, src, safe) {
+  for (var key in src) redefine(target, key, src[key], safe);
+  return target;
+};
+
+
+/***/ }),
+
 /***/ "e11e":
 /***/ (function(module, exports) {
 
@@ -3190,25 +3706,26 @@ module.exports = (
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("00c2");
-/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("80c9");
+/* harmony import */ var _node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0__);
 /* unused harmony reexport * */
- /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
+ /* unused harmony default export */ var _unused_webpack_default_export = (_node_modules_vue_style_loader_index_js_ref_6_oneOf_1_0_node_modules_css_loader_index_js_ref_6_oneOf_1_1_node_modules_vue_loader_lib_loaders_stylePostLoader_js_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_2_node_modules_postcss_loader_lib_index_js_ref_6_oneOf_1_3_node_modules_cache_loader_dist_cjs_js_ref_0_0_node_modules_vue_loader_lib_index_js_vue_loader_options_GridLayout_vue_vue_type_style_index_0_lang_css___WEBPACK_IMPORTED_MODULE_0___default.a); 
 
 /***/ }),
 
-/***/ "e8cd":
+/***/ "ebd6":
 /***/ (function(module, exports, __webpack_require__) {
 
-// style-loader: Adds some css to the DOM by adding a <style> tag
+// 7.3.20 SpeciesConstructor(O, defaultConstructor)
+var anObject = __webpack_require__("cb7c");
+var aFunction = __webpack_require__("d8e8");
+var SPECIES = __webpack_require__("2b4c")('species');
+module.exports = function (O, D) {
+  var C = anObject(O).constructor;
+  var S;
+  return C === undefined || (S = anObject(C)[SPECIES]) == undefined ? D : aFunction(S);
+};
 
-// load the styles
-var content = __webpack_require__("1fb2");
-if(typeof content === 'string') content = [[module.i, content, '']];
-if(content.locals) module.exports = content.locals;
-// add the styles to the DOM
-var add = __webpack_require__("499e").default
-var update = add("54ca58d1", content, true, {"sourceMap":false,"shadowMode":false});
 
 /***/ }),
 
@@ -3541,6 +4058,33 @@ function getOption(options, name, defaultValue) {
 
 /***/ }),
 
+/***/ "f2e8":
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__("2350")(false);
+// imports
+
+
+// module
+exports.push([module.i, "\n.vue-grid-item{-webkit-transition:all .2s ease;transition:all .2s ease;-webkit-transition-property:left,top,right;transition-property:left,top,right\n}\n.vue-grid-item.cssTransforms{-webkit-transition-property:-webkit-transform;transition-property:-webkit-transform;transition-property:transform;transition-property:transform,-webkit-transform;left:0;right:auto\n}\n.vue-grid-item.cssTransforms.render-rtl{left:auto;right:0\n}\n.vue-grid-item.resizing{opacity:.6;z-index:3\n}\n.vue-grid-item.vue-draggable-dragging{-webkit-transition:none;transition:none;z-index:3\n}\n.vue-grid-item.vue-grid-placeholder{background:red;opacity:.2;-webkit-transition-duration:.1s;transition-duration:.1s;z-index:2;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-o-user-select:none;user-select:none\n}\n.vue-grid-item>.vue-resizable-handle{position:absolute;width:20px;height:20px;bottom:0;right:0;background:url(\"data:image/svg+xml;base64,PHN2ZyBzdHlsZT0iYmFja2dyb3VuZC1jb2xvcjojZmZmZmZmMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjYiIGhlaWdodD0iNiI+PHBhdGggZD0iTTYgNkgwVjQuMmg0LjJWMEg2djZ6IiBvcGFjaXR5PSIuMzAyIi8+PC9zdmc+\");background-position:100% 100%;padding:0 3px 3px 0;background-repeat:no-repeat;background-origin:content-box;-webkit-box-sizing:border-box;box-sizing:border-box;cursor:se-resize\n}\n.vue-grid-item>.vue-rtl-resizable-handle{bottom:0;left:0;background:url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbD0ibm9uZSIgZD0iTS0xLTFoMTJ2MTJILTF6Ii8+PGc+PHBhdGggc3Ryb2tlLWxpbmVjYXA9InVuZGVmaW5lZCIgc3Ryb2tlLWxpbmVqb2luPSJ1bmRlZmluZWQiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2U9IiMwMDAiIGZpbGw9Im5vbmUiIGQ9Ik0xNDQuODIxLTM4LjM5M2wtMjAuMzU3LTMxLjc4NSIvPjxwYXRoIHN0cm9rZT0iIzY2NiIgc3Ryb2tlLWxpbmVjYXA9InVuZGVmaW5lZCIgc3Ryb2tlLWxpbmVqb2luPSJ1bmRlZmluZWQiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgZD0iTS45NDctLjAxOHY5LjEyNU0tLjY1NiA5aDEwLjczIi8+PC9nPjwvc3ZnPg==);background-position:0 100%;padding-left:3px;background-repeat:no-repeat;background-origin:content-box;cursor:sw-resize;right:auto\n}\n.vue-grid-item.disable-userselect{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none\n}", ""]);
+
+// exports
+
+
+/***/ }),
+
+/***/ "f605":
+/***/ (function(module, exports) {
+
+module.exports = function (it, Constructor, name, forbiddenField) {
+  if (!(it instanceof Constructor) || (forbiddenField !== undefined && forbiddenField in it)) {
+    throw TypeError(name + ': incorrect invocation!');
+  } return it;
+};
+
+
+/***/ }),
+
 /***/ "fab2":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -3556,150 +4100,107 @@ module.exports = document && document.documentElement;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 
-// EXTERNAL MODULE: ./node_modules/@vue/cli-service/lib/commands/build/setPublicPath.js
-var setPublicPath = __webpack_require__("1eb2");
+// CONCATENATED MODULE: ./node_modules/@vue/cli-service/lib/commands/build/setPublicPath.js
+// This file is imported into lib/wc client bundles.
 
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.function.name.js
-var es6_function_name = __webpack_require__("7f7f");
+if (typeof window !== 'undefined') {
+  var i
+  if ((i = window.document.currentScript) && (i = i.src.match(/(.+\/)[^/]+\.js$/))) {
+    __webpack_require__.p = i[1] // eslint-disable-line
+  }
+}
 
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.array.iterator.js
-var es6_array_iterator = __webpack_require__("cadf");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.object.keys.js
-var es6_object_keys = __webpack_require__("456d");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom.iterable.js
-var web_dom_iterable = __webpack_require__("ac6a");
+// Indicate to webpack that this file can be concatenated
+/* harmony default export */ var setPublicPath = (null);
 
 // EXTERNAL MODULE: external {"commonjs":"vue","commonjs2":"vue","root":"Vue"}
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__("8bbf");
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules//.cache//vue-loader","cacheIdentifier":"78a686b4-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridItem.vue?vue&type=template&id=60ad8916&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"item",staticClass:"vue-grid-item",class:{ 'vue-resizable' : _vm.resizable, 'resizing' : _vm.isResizing, 'vue-draggable-dragging' : _vm.isDragging, 'cssTransforms' : _vm.useCssTransforms, 'render-rtl' : _vm.renderRtl, 'disable-userselect': _vm.isDragging },style:(_vm.style)},[_vm._t("default"),(_vm.resizable)?_c('span',{ref:"handle",class:_vm.resizableHandleClass}):_vm._e()],2)}
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules//.cache//vue-loader","cacheIdentifier":"d988afac-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridItem.vue?vue&type=template&id=6391b426&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"item",staticClass:"vue-grid-item",class:_vm.gridItemClass,style:(_vm.style)},[_vm._t("default"),(_vm.resizable)?_c('span',{ref:"handle",class:_vm.resizableHandleClass}):_vm._e()],2)}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/GridItem.vue?vue&type=template&id=60ad8916&
+// CONCATENATED MODULE: ./src/components/GridItem.vue?vue&type=template&id=6391b426&
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es6.number.constructor.js
 var es6_number_constructor = __webpack_require__("c5f6");
 
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.regexp.replace.js
-var es6_regexp_replace = __webpack_require__("a481");
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.array.iterator.js
+var es6_array_iterator = __webpack_require__("cadf");
 
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.array.sort.js
-var es6_array_sort = __webpack_require__("55dd");
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es6.promise.js
+var es6_promise = __webpack_require__("551c");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es7.promise.finally.js
+var es7_promise_finally = __webpack_require__("097d");
 
 // CONCATENATED MODULE: ./src/helpers/utils.js
 
-
-
-
-
-// @flow
-
-/*:: export type LayoutItemRequired = {w: number, h: number, x: number, y: number, i: string};*/
-
-/*:: export type LayoutItem = LayoutItemRequired &
-                         {minW?: number, minH?: number, maxW?: number, maxH?: number,
-                          moved?: boolean, static?: boolean,
-                          isDraggable?: ?boolean, isResizable?: ?boolean};*/
-
-// export type Position = {left: number, top: number, width: number, height: number};
-
+// export type Position = {left, top, width, height};
 /*
 export type DragCallbackData = {
   node: HTMLElement,
-  x: number, y: number,
-  deltaX: number, deltaY: number,
-  lastX: number, lastY: number
+  x, y,
+  deltaX, deltaY,
+  lastX, lastY
 };
 */
 // export type DragEvent = {e: Event} & DragCallbackData;
 
-/*:: export type Layout = Array<LayoutItem>;*/
-
 // export type ResizeEvent = {e: Event, node: HTMLElement, size: Size};
-// const isProduction = process.env.NODE_ENV === 'production';
 
+// const isProduction = process.env.NODE_ENV === 'production';
 /**
  * Return the bottom coordinate of the layout.
  *
  * @param  {Array} layout Layout array.
  * @return {Number}       Bottom coordinate.
  */
-
-/*:: export type Size = {width: number, height: number};*/
-
-function bottom(layout
-/*: Layout*/
-)
-/*: number*/
-{
-  var max = 0,
-      bottomY;
-
-  for (var _i = 0, len = layout.length; _i < len; _i++) {
-    bottomY = layout[_i].y + layout[_i].h;
+function bottom(layout) {
+  let max = 0, bottomY;
+  for (let i = 0, len = layout.length; i < len; i++) {
+    bottomY = layout[i]. y + layout[i].h;
     if (bottomY > max) max = bottomY;
   }
-
   return max;
 }
-function cloneLayout(layout
-/*: Layout*/
-)
-/*: Layout*/
-{
-  var newLayout = Array(layout.length);
 
-  for (var _i2 = 0, len = layout.length; _i2 < len; _i2++) {
-    newLayout[_i2] = cloneLayoutItem(layout[_i2]);
+function cloneLayout(layout) {
+  const newLayout = Array(layout.length);
+  for (let i = 0, len = layout.length; i < len; i++) {
+    newLayout[i] = cloneLayoutItem(layout[i]);
   }
-
   return newLayout;
-} // Fast path to cloning, since this is monomorphic
-
-function cloneLayoutItem(layoutItem
-/*: LayoutItem*/
-)
-/*: LayoutItem*/
-{
-  /*return {
-    w: layoutItem.w, h: layoutItem.h, x: layoutItem.x, y: layoutItem.y, i: layoutItem.i,
-    minW: layoutItem.minW, maxW: layoutItem.maxW, minH: layoutItem.minH, maxH: layoutItem.maxH,
-    moved: Boolean(layoutItem.moved), static: Boolean(layoutItem.static),
-    // These can be null
-    isDraggable: layoutItem.isDraggable, isResizable: layoutItem.isResizable
-  };*/
-  return JSON.parse(JSON.stringify(layoutItem));
 }
+
+// Fast path to cloning, since this is monomorphic
+function cloneLayoutItem(layoutItem) {
+  /*return {
+    wItem.w, hItem.h, xItem.x, yItem.y, iItem.i,
+    minWItem.minW, maxWItem.maxW, minHItem.minH, maxHItem.maxH,
+    moved(layoutItem.moved), static(layoutItem.static),
+    // These can be null
+    isDraggableItem.isDraggable, isResizableItem.isResizable
+  };*/
+    return JSON.parse(JSON.stringify(layoutItem));
+}
+
 /**
  * Given two layoutitems, check if they collide.
  *
  * @return {Boolean}   True if colliding.
  */
-
-function collides(l1
-/*: LayoutItem*/
-, l2
-/*: LayoutItem*/
-)
-/*: boolean*/
-{
+function collides(l1, l2) {
   if (l1 === l2) return false; // same element
-
   if (l1.x + l1.w <= l2.x) return false; // l1 is left of l2
-
   if (l1.x >= l2.x + l2.w) return false; // l1 is right of l2
-
   if (l1.y + l1.h <= l2.y) return false; // l1 is above l2
-
   if (l1.y >= l2.y + l2.h) return false; // l1 is below l2
-
   return true; // boxes overlap
 }
+
 /**
  * Given a layout, compact it. This involves going down each y coordinate and removing gaps
  * between items.
@@ -3709,105 +4210,84 @@ function collides(l1
  *   vertically.
  * @return {Array}       Compacted Layout.
  */
+function compact(layout, verticalCompact) {
+    // Statics go in the compareWith array right away so items flow around them.
+  const compareWith = getStatics(layout);
+  // We go through the items by row and column.
+  const sorted = sortLayoutItemsByRowCol(layout);
+  // Holding for new items.
+  const out = Array(layout.length);
 
-function compact(layout
-/*: Layout*/
-, verticalCompact
-/*: Boolean*/
-)
-/*: Layout*/
-{
-  // Statics go in the compareWith array right away so items flow around them.
-  var compareWith = getStatics(layout); // We go through the items by row and column.
+  for (let i = 0, len = sorted.length; i < len; i++) {
+    let l = sorted[i];
 
-  var sorted = sortLayoutItemsByRowCol(layout); // Holding for new items.
-
-  var out = Array(layout.length);
-
-  for (var _i3 = 0, len = sorted.length; _i3 < len; _i3++) {
-    var l = sorted[_i3]; // Don't move static elements
-
+    // Don't move static elements
     if (!l.static) {
-      l = compactItem(compareWith, l, verticalCompact); // Add to comparison array. We only collide with items before this one.
+      l = compactItem(compareWith, l, verticalCompact);
+
+      // Add to comparison array. We only collide with items before this one.
       // Statics are already in this array.
-
       compareWith.push(l);
-    } // Add to output array to make sure they still come out in the right order.
+    }
 
+    // Add to output array to make sure they still come out in the right order.
+    out[layout.indexOf(l)] = l;
 
-    out[layout.indexOf(l)] = l; // Clear moved flag, if it exists.
-
+    // Clear moved flag, if it exists.
     l.moved = false;
   }
 
   return out;
 }
+
 /**
  * Compact an item in the layout.
  */
-
-function compactItem(compareWith
-/*: Layout*/
-, l
-/*: LayoutItem*/
-, verticalCompact
-/*: boolean*/
-)
-/*: LayoutItem*/
-{
+function compactItem(compareWith, l, verticalCompact) {
   if (verticalCompact) {
     // Move the element up as far as it can go without colliding.
     while (l.y > 0 && !getFirstCollision(compareWith, l)) {
       l.y--;
     }
-  } // Move it down, and keep moving it down if it's colliding.
-
-
-  var collides;
-
-  while (collides = getFirstCollision(compareWith, l)) {
-    l.y = collides.y + collides.h;
   }
 
+  // Move it down, and keep moving it down if it's colliding.
+  let collides;
+  while((collides = getFirstCollision(compareWith, l))) {
+    l.y = collides.y + collides.h;
+  }
   return l;
 }
+
 /**
  * Given a layout, make sure all elements fit within its bounds.
  *
  * @param  {Array} layout Layout array.
  * @param  {Number} bounds Number of columns.
  */
-
-function correctBounds(layout
-/*: Layout*/
-, bounds
-/*: {cols: number}*/
-)
-/*: Layout*/
-{
-  var collidesWith = getStatics(layout);
-
-  for (var _i4 = 0, len = layout.length; _i4 < len; _i4++) {
-    var l = layout[_i4]; // Overflows right
-
-    if (l.x + l.w > bounds.cols) l.x = bounds.cols - l.w; // Overflows left
-
+function correctBounds(layout, bounds) {
+  const collidesWith = getStatics(layout);
+  for (let i = 0, len = layout.length; i < len; i++) {
+    const l = layout[i];
+    // Overflows right
+    if (l.x + l.w > bounds.cols) l.x = bounds.cols - l.w;
+    // Overflows left
     if (l.x < 0) {
       l.x = 0;
       l.w = bounds.cols;
     }
-
-    if (!l.static) collidesWith.push(l);else {
+    if (!l.static) collidesWith.push(l);
+    else {
       // If this is static and collides with other statics, we must move it down.
       // We have to do something nicer than just letting them overlap.
-      while (getFirstCollision(collidesWith, l)) {
+      while(getFirstCollision(collidesWith, l)) {
         l.y++;
       }
     }
   }
-
   return layout;
 }
+
 /**
  * Get a layout item by ID. Used so we can override later on if necessary.
  *
@@ -3815,18 +4295,12 @@ function correctBounds(layout
  * @param  {String} id     ID
  * @return {LayoutItem}    Item at ID.
  */
-
-function getLayoutItem(layout
-/*: Layout*/
-, id
-/*: string*/
-)
-/*: ?LayoutItem*/
-{
-  for (var _i5 = 0, len = layout.length; _i5 < len; _i5++) {
-    if (layout[_i5].i === id) return layout[_i5];
+function getLayoutItem(layout, id) {
+  for (let i = 0, len = layout.length; i < len; i++) {
+    if (layout[i].i === id) return layout[i];
   }
 }
+
 /**
  * Returns the first item this layout collides with.
  * It doesn't appear to matter which order we approach this from, although
@@ -3835,45 +4309,26 @@ function getLayoutItem(layout
  * @param  {Object} layoutItem Layout item.
  * @return {Object|undefined}  A colliding layout item, or undefined.
  */
-
-function getFirstCollision(layout
-/*: Layout*/
-, layoutItem
-/*: LayoutItem*/
-)
-/*: ?LayoutItem*/
-{
-  for (var _i6 = 0, len = layout.length; _i6 < len; _i6++) {
-    if (collides(layout[_i6], layoutItem)) return layout[_i6];
+function getFirstCollision(layout, layoutItem) {
+  for (let i = 0, len = layout.length; i < len; i++) {
+    if (collides(layout[i], layoutItem)) return layout[i];
   }
 }
-function getAllCollisions(layout
-/*: Layout*/
-, layoutItem
-/*: LayoutItem*/
-)
-/*: Array<LayoutItem>*/
-{
-  return layout.filter(function (l) {
-    return collides(l, layoutItem);
-  });
+
+function getAllCollisions(layout, layoutItem) {
+  return layout.filter((l) => collides(l, layoutItem));
 }
+
 /**
  * Get all static elements.
  * @param  {Array} layout Array of layout objects.
  * @return {Array}        Array of static layout items..
  */
-
-function getStatics(layout
-/*: Layout*/
-)
-/*: Array<LayoutItem>*/
-{
-  //return [];
-  return layout.filter(function (l) {
-    return l.static;
-  });
+function getStatics(layout) {
+    //return [];
+    return layout.filter((l) => l.static);
 }
+
 /**
  * Move an element. Responsible for doing cascading movements of other elements.
  *
@@ -3884,44 +4339,38 @@ function getStatics(layout
  * @param  {Boolean}    [isUserAction] If true, designates that the item we're moving is
  *                                     being dragged/resized by th euser.
  */
+function moveElement(layout, l, x, y, isUserAction) {
+  if (l.static) return layout;
 
-function moveElement(layout
-/*: Layout*/
-, l
-/*: LayoutItem*/
-, x
-/*: Number*/
-, y
-/*: Number*/
-, isUserAction
-/*: Boolean*/
-)
-/*: Layout*/
-{
-  if (l.static) return layout; // Short-circuit if nothing to do.
+  // Short-circuit if nothing to do.
   //if (l.y === y && l.x === x) return layout;
 
-  var movingUp = y && l.y > y; // This is quite a bit faster than extending the object
-
+  const movingUp = y && l.y > y;
+  // This is quite a bit faster than extending the object
   if (typeof x === 'number') l.x = x;
   if (typeof y === 'number') l.y = y;
-  l.moved = true; // If this collides with anything, move it.
+  l.moved = true;
+
+  // If this collides with anything, move it.
   // When doing this comparison, we have to sort the items we compare with
   // to ensure, in the case of multiple collisions, that we're getting the
   // nearest collision.
-
-  var sorted = sortLayoutItemsByRowCol(layout);
+  let sorted = sortLayoutItemsByRowCol(layout);
   if (movingUp) sorted = sorted.reverse();
-  var collisions = getAllCollisions(sorted, l); // Move each item that collides away from this element.
+  const collisions = getAllCollisions(sorted, l);
 
-  for (var _i7 = 0, len = collisions.length; _i7 < len; _i7++) {
-    var collision = collisions[_i7]; // console.log('resolving collision between', l.i, 'at', l.y, 'and', collision.i, 'at', collision.y);
+  // Move each item that collides away from this element.
+  for (let i = 0, len = collisions.length; i < len; i++) {
+    const collision = collisions[i];
+    // console.log('resolving collision between', l.i, 'at', l.y, 'and', collision.i, 'at', collision.y);
+
     // Short circuit so we can't infinite loop
+    if (collision.moved) continue;
 
-    if (collision.moved) continue; // This makes it feel a bit more precise by waiting to swap for just a bit when moving up.
+    // This makes it feel a bit more precise by waiting to swap for just a bit when moving up.
+    if (l.y > collision.y && l.y - collision.y > collision.h / 4) continue;
 
-    if (l.y > collision.y && l.y - collision.y > collision.h / 4) continue; // Don't move static items - we have to move *this* element away
-
+    // Don't move static items - we have to move *this* element away
     if (collision.static) {
       layout = moveElementAwayFromCollision(layout, collision, l, isUserAction);
     } else {
@@ -3931,6 +4380,7 @@ function moveElement(layout
 
   return layout;
 }
+
 /**
  * This is where the magic needs to happen - given a collision, move an element away from the collision.
  * We attempt to move it up if there's room, otherwise it goes below.
@@ -3941,26 +4391,15 @@ function moveElement(layout
  * @param  {Boolean} [isUserAction]  If true, designates that the item we're moving is being dragged/resized
  *                                   by the user.
  */
+function moveElementAwayFromCollision(layout, collidesWith,
+                                             itemToMove, isUserAction) {
 
-function moveElementAwayFromCollision(layout
-/*: Layout*/
-, collidesWith
-/*: LayoutItem*/
-, itemToMove
-/*: LayoutItem*/
-, isUserAction
-/*: ?boolean*/
-)
-/*: Layout*/
-{
   // If there is enough space above the collision to put this element, move it there.
   // We only do this on the main collision as this can get funky in cascades and cause
   // unwanted swapping behavior.
   if (isUserAction) {
     // Make a mock item so we don't modify the item here, only modify in moveElement.
-    var fakeItem
-    /*: LayoutItem*/
-    = {
+    const fakeItem = {
       x: itemToMove.x,
       y: itemToMove.y,
       w: itemToMove.w,
@@ -3968,35 +4407,29 @@ function moveElementAwayFromCollision(layout
       i: '-1'
     };
     fakeItem.y = Math.max(collidesWith.y - itemToMove.h, 0);
-
     if (!getFirstCollision(layout, fakeItem)) {
       return moveElement(layout, itemToMove, undefined, fakeItem.y);
     }
-  } // Previously this was optimized to move below the collision directly, but this can cause problems
+  }
+
+  // Previously this was optimized to move below the collision directly, but this can cause problems
   // with cascading moves, as an item may actually leapflog a collision and cause a reversal in order.
-
-
   return moveElement(layout, itemToMove, undefined, itemToMove.y + 1);
 }
+
 /**
  * Helper to convert a number to a percentage string.
  *
  * @param  {Number} num Any number
  * @return {String}     That number as a percentage.
  */
-
-function perc(num
-/*: number*/
-)
-/*: string*/
-{
+function perc(num) {
   return num * 100 + '%';
 }
-function setTransform(top, left, width, height)
-/*: Object*/
-{
+
+function setTransform(top, left, width, height) {
   // Replace unitless items with px
-  var translate = "translate3d(" + left + "px," + top + "px, 0)";
+  const translate = "translate3d(" + left + "px," + top + "px, 0)";
   return {
     transform: translate,
     WebkitTransform: translate,
@@ -4015,35 +4448,31 @@ function setTransform(top, left, width, height)
  * @param right
  * @param width
  * @param height
- * @returns {{transform: string, WebkitTransform: string, MozTransform: string, msTransform: string, OTransform: string, width: string, height: string, position: string}}
+ * @returns {{transform, WebkitTransform, MozTransform, msTransform, OTransform, width, height, position}}
  */
-
-function setTransformRtl(top, right, width, height)
-/*: Object*/
-{
-  // Replace unitless items with px
-  var translate = "translate3d(" + right * -1 + "px," + top + "px, 0)";
-  return {
-    transform: translate,
-    WebkitTransform: translate,
-    MozTransform: translate,
-    msTransform: translate,
-    OTransform: translate,
-    width: width + "px",
-    height: height + "px",
-    position: 'absolute'
-  };
+function setTransformRtl(top, right, width, height) {
+    // Replace unitless items with px
+    const translate = "translate3d(" + right * -1 + "px," + top + "px, 0)";
+    return {
+        transform: translate,
+        WebkitTransform: translate,
+        MozTransform: translate,
+        msTransform: translate,
+        OTransform: translate,
+        width: width + "px",
+        height: height + "px",
+        position: 'absolute'
+    };
 }
-function setTopLeft(top, left, width, height)
-/*: Object*/
-{
-  return {
-    top: top + "px",
-    left: left + "px",
-    width: width + "px",
-    height: height + "px",
-    position: 'absolute'
-  };
+
+function setTopLeft(top, left, width, height) {
+    return {
+        top: top + "px",
+        left: left + "px",
+        width: width + "px",
+        height: height + "px",
+        position: 'absolute'
+    };
 }
 /**
  * Just like the setTopLeft method, but instead, it will return a right property instead of left.
@@ -4052,40 +4481,34 @@ function setTopLeft(top, left, width, height)
  * @param right
  * @param width
  * @param height
- * @returns {{top: string, right: string, width: string, height: string, position: string}}
+ * @returns {{top, right, width, height, position}}
  */
-
-function setTopRight(top, right, width, height)
-/*: Object*/
-{
-  return {
-    top: top + "px",
-    right: right + "px",
-    width: width + "px",
-    height: height + "px",
-    position: 'absolute'
-  };
+function setTopRight(top, right, width, height) {
+    return {
+        top: top + "px",
+        right: right+ "px",
+        width: width + "px",
+        height: height + "px",
+        position: 'absolute'
+    };
 }
+
+
 /**
  * Get layout items sorted from top left to right and down.
  *
  * @return {Array} Array of layout objects.
  * @return {Array}        Layout, sorted static items first.
  */
-
-function sortLayoutItemsByRowCol(layout
-/*: Layout*/
-)
-/*: Layout*/
-{
-  return [].concat(layout).sort(function (a, b) {
-    if (a.y > b.y || a.y === b.y && a.x > b.x) {
+function sortLayoutItemsByRowCol(layout) {
+  return [].concat(layout).sort(function(a, b) {
+    if (a.y > b.y || (a.y === b.y && a.x > b.x)) {
       return 1;
     }
-
     return -1;
   });
 }
+
 /**
  * Generate a layout using the initialLayout and children as a template.
  * Missing entries will be added, extraneous ones will be truncated.
@@ -4095,10 +4518,9 @@ function sortLayoutItemsByRowCol(layout
  * @param  {Boolean} verticalCompact Whether or not to compact the layout vertically.
  * @return {Array}                Working layout.
  */
-
 /*
-export function synchronizeLayoutWithChildren(initialLayout: Layout, children: Array<React.Element>|React.Element,
-                                              cols: number, verticalCompact: boolean): Layout {
+export function synchronizeLayoutWithChildren(initialLayout, children: Array<React.Element>|React.Element,
+                                              cols, verticalCompact) {
   // ensure 'children' is always an array
   if (!Array.isArray(children)) {
     children = [children];
@@ -4106,7 +4528,7 @@ export function synchronizeLayoutWithChildren(initialLayout: Layout, children: A
   initialLayout = initialLayout || [];
 
   // Generate one layout item per child.
-  let layout: Layout = [];
+  let layout = [];
   for (let i = 0, len = children.length; i < len; i++) {
     let newItem;
     const child = children[i];
@@ -4154,117 +4576,106 @@ export function synchronizeLayoutWithChildren(initialLayout: Layout, children: A
  * @param  {String} [contextName] Context name for errors.
  * @throw  {Error}                Validation error.
  */
-
-function validateLayout(layout
-/*: Layout*/
-, contextName
-/*: string*/
-)
-/*: void*/
-{
+function validateLayout(layout, contextName) {
   contextName = contextName || "Layout";
-  var subProps = ['x', 'y', 'w', 'h'];
+  const subProps = ['x', 'y', 'w', 'h'];
   if (!Array.isArray(layout)) throw new Error(contextName + " must be an array!");
-
-  for (var _i8 = 0, len = layout.length; _i8 < len; _i8++) {
-    var item = layout[_i8];
-
-    for (var j = 0; j < subProps.length; j++) {
+  for (let i = 0, len = layout.length; i < len; i++) {
+    const item = layout[i];
+    for (let j = 0; j < subProps.length; j++) {
       if (typeof item[subProps[j]] !== 'number') {
-        throw new Error('VueGridLayout: ' + contextName + '[' + _i8 + '].' + subProps[j] + ' must be a number!');
+        throw new Error('VueGridLayout: ' + contextName + '[' + i + '].' + subProps[j] + ' must be a number!');
       }
     }
-
-    if (item.i && typeof item.i !== 'string') {// number is also ok, so comment the error
-      // TODO confirm if commenting the line below doesn't cause unexpected problems
+    if (item.i && typeof item.i !== 'string') {
+      // number is also ok, so comment the error
+        // TODO confirm if commenting the line below doesn't cause unexpected problems
       // throw new Error('VueGridLayout: ' + contextName + '[' + i + '].i must be a string!');
     }
-
     if (item.static !== undefined && typeof item.static !== 'boolean') {
-      throw new Error('VueGridLayout: ' + contextName + '[' + _i8 + '].static must be a boolean!');
+      throw new Error('VueGridLayout: ' + contextName + '[' + i + '].static must be a boolean!');
     }
   }
-} // Flow can't really figure this out, so we just use Object
-
-function autoBindHandlers(el
-/*: Object*/
-, fns
-/*: Array<string>*/
-)
-/*: void*/
-{
-  fns.forEach(function (key) {
-    return el[key] = el[key].bind(el);
-  });
 }
+
+// Flow can't really figure this out, so we just use Object
+function autoBindHandlers(el, fns) {
+  fns.forEach((key) => el[key] = el[key].bind(el));
+}
+
+
+
 /**
  * Convert a JS object to CSS string. Similar to React's output of CSS.
  * @param obj
  * @returns {string}
  */
-
 function createMarkup(obj) {
-  var keys = Object.keys(obj);
-  if (!keys.length) return '';
-  var i,
-      len = keys.length;
-  var result = '';
+    var keys = Object.keys(obj);
+    if (!keys.length) return '';
+    var i, len = keys.length;
+    var result = '';
 
-  for (i = 0; i < len; i++) {
-    var key = keys[i];
-    var val = obj[key];
-    result += hyphenate(key) + ':' + addPx(key, val) + ';';
-  }
+    for (i = 0; i < len; i++) {
+        var key = keys[i];
+        var val = obj[key];
+        result += hyphenate(key) + ':' + addPx(key, val) + ';';
+    }
 
-  return result;
+    return result;
 }
-/* The following list is defined in React's core */
 
+
+/* The following list is defined in React's core */
 var IS_UNITLESS = {
-  animationIterationCount: true,
-  boxFlex: true,
-  boxFlexGroup: true,
-  boxOrdinalGroup: true,
-  columnCount: true,
-  flex: true,
-  flexGrow: true,
-  flexPositive: true,
-  flexShrink: true,
-  flexNegative: true,
-  flexOrder: true,
-  gridRow: true,
-  gridColumn: true,
-  fontWeight: true,
-  lineClamp: true,
-  lineHeight: true,
-  opacity: true,
-  order: true,
-  orphans: true,
-  tabSize: true,
-  widows: true,
-  zIndex: true,
-  zoom: true,
-  // SVG-related properties
-  fillOpacity: true,
-  stopOpacity: true,
-  strokeDashoffset: true,
-  strokeOpacity: true,
-  strokeWidth: true
+    animationIterationCount: true,
+    boxFlex: true,
+    boxFlexGroup: true,
+    boxOrdinalGroup: true,
+    columnCount: true,
+    flex: true,
+    flexGrow: true,
+    flexPositive: true,
+    flexShrink: true,
+    flexNegative: true,
+    flexOrder: true,
+    gridRow: true,
+    gridColumn: true,
+    fontWeight: true,
+    lineClamp: true,
+    lineHeight: true,
+    opacity: true,
+    order: true,
+    orphans: true,
+    tabSize: true,
+    widows: true,
+    zIndex: true,
+    zoom: true,
+
+    // SVG-related properties
+    fillOpacity: true,
+    stopOpacity: true,
+    strokeDashoffset: true,
+    strokeOpacity: true,
+    strokeWidth: true
 };
+
+
 /**
  * Will add px to the end of style values which are Numbers.
  * @param name
  * @param value
  * @returns {*}
  */
-
 function addPx(name, value) {
-  if (typeof value === 'number' && !IS_UNITLESS[name]) {
-    return value + 'px';
-  } else {
-    return value;
-  }
+    if(typeof value === 'number' && !IS_UNITLESS[ name ]) {
+        return value + 'px';
+    } else {
+        return value;
+    }
 }
+
+
 /**
  * Hyphenate a camelCase string.
  *
@@ -4273,203 +4684,137 @@ function addPx(name, value) {
  */
 
 var hyphenateRE = /([a-z\d])([A-Z])/g;
-function hyphenate(str) {
-  return str.replace(hyphenateRE, '$1-$2').toLowerCase();
-}
-function findItemInArray(array, property, value) {
-  for (var i = 0; i < array.length; i++) {
-    if (array[i][property] == value) return true;
-  }
 
-  return false;
+function hyphenate(str) {
+    return str.replace(hyphenateRE, '$1-$2').toLowerCase();
 }
+
+
+function findItemInArray(array, property, value) {
+    for (var i=0; i < array.length; i++)
+        if (array[i][property] == value)
+            return true;
+
+    return false;
+}
+
 function findAndRemove(array, property, value) {
-  array.forEach(function (result, index) {
-    if (result[property] === value) {
-      //Remove from array
-      array.splice(index, 1);
-    }
-  });
+    array.forEach(function (result, index) {
+        if (result[property] === value) {
+            //Remove from array
+            array.splice(index, 1);
+        }
+    });
 }
+
 // CONCATENATED MODULE: ./src/helpers/draggableUtils.js
 // Get {x, y} positions from event.
 function getControlPosition(e) {
-  return offsetXYFromParentOf(e);
-} // Get from offsetParent
+    return offsetXYFromParentOf(e);
+}
 
+
+// Get from offsetParent
 function offsetXYFromParentOf(evt) {
-  var offsetParent = evt.target.offsetParent || document.body;
-  var offsetParentRect = evt.offsetParent === document.body ? {
-    left: 0,
-    top: 0
-  } : offsetParent.getBoundingClientRect();
-  var x = evt.clientX + offsetParent.scrollLeft - offsetParentRect.left;
-  var y = evt.clientY + offsetParent.scrollTop - offsetParentRect.top;
-  /*const x = Math.round(evt.clientX + offsetParent.scrollLeft - offsetParentRect.left);
-  const y = Math.round(evt.clientY + offsetParent.scrollTop - offsetParentRect.top);*/
+    const offsetParent = evt.target.offsetParent || document.body;
+    const offsetParentRect = evt.offsetParent === document.body ? {left: 0, top: 0} : offsetParent.getBoundingClientRect();
 
-  return {
-    x: x,
-    y: y
-  };
-} // Create an data object exposed by <DraggableCore>'s events
+    const x = evt.clientX + offsetParent.scrollLeft - offsetParentRect.left;
+    const y = evt.clientY + offsetParent.scrollTop - offsetParentRect.top;
 
+    /*const x = Math.round(evt.clientX + offsetParent.scrollLeft - offsetParentRect.left);
+    const y = Math.round(evt.clientY + offsetParent.scrollTop - offsetParentRect.top);*/
+
+
+    return {x, y};
+}
+
+
+// Create an data object exposed by <DraggableCore>'s events
 function createCoreData(lastX, lastY, x, y) {
-  // State changes are often (but not always!) async. We want the latest value.
-  var isStart = !isNum(lastX);
+    // State changes are often (but not always!) async. We want the latest value.
+    const isStart = !isNum(lastX);
 
-  if (isStart) {
-    // If this is our first move, use the x and y as last coords.
-    return {
-      deltaX: 0,
-      deltaY: 0,
-      lastX: x,
-      lastY: y,
-      x: x,
-      y: y
-    };
-  } else {
-    // Otherwise calculate proper values.
-    return {
-      deltaX: x - lastX,
-      deltaY: y - lastY,
-      lastX: lastX,
-      lastY: lastY,
-      x: x,
-      y: y
-    };
-  }
+    if (isStart) {
+        // If this is our first move, use the x and y as last coords.
+        return {
+            deltaX: 0, deltaY: 0,
+            lastX: x, lastY: y,
+            x: x, y: y
+        };
+    } else {
+        // Otherwise calculate proper values.
+        return {
+            deltaX: x - lastX, deltaY: y - lastY,
+            lastX: lastX, lastY: lastY,
+            x: x, y: y
+        };
+    }
 }
 
-function isNum(num) {
-  return typeof num === 'number' && !isNaN(num);
+
+function isNum(num)  {
+    return typeof num === 'number' && !isNaN(num);
 }
+
+
 // CONCATENATED MODULE: ./src/helpers/DOM.js
-var currentDir
-/*: "ltr" | "rtl" | "auto"*/
-= "auto"; // let currentDir = "auto";
+//let currentDir: "ltr" | "rtl" | "auto"  = "auto";
+let currentDir = "auto";//"ltr", "rtl", "auto"
 
-function hasDocument() {
-  return typeof document !== "undefined";
+function hasDocument(){
+    return (typeof document !== "undefined");
 }
 
-function hasWindow() {
-  return typeof window !== "undefined";
+function hasWindow(){
+    return (typeof window !== "undefined");
 }
 
-function getDocumentDir() {
-  if (!hasDocument()) {
-    return currentDir;
-  }
-
-  var direction = typeof document.dir !== "undefined" ? document.dir : document.getElementsByTagName("html")[0].getAttribute("dir");
-  return direction;
+function getDocumentDir(){
+    if(!hasDocument()){
+        return currentDir;
+    }
+    const direction = (typeof document.dir !== "undefined") ?
+        document.dir :
+        document.getElementsByTagName("html")[0].getAttribute("dir");
+    return direction;
 }
-function setDocumentDir(dir
-/*: "ltr" | "rtl" | "auto"*/
-) {
-  // export function setDocumentDir(dir){
-  if (!hasDocument) {
-    currentDir = dir;
-    return;
-  }
 
-  var html = document.getElementsByTagName("html")[0];
-  html.setAttribute("dir", dir);
+function setDocumentDir(dir){//dir: "ltr" | "rtl" | "auto"
+// export function setDocumentDir(dir){
+    if (!hasDocument) {
+        currentDir = dir;
+        return;
+    }
+
+    const html = document.getElementsByTagName("html")[0];
+    html.setAttribute("dir", dir);
 }
-function addWindowEventListener(event
-/*:string*/
-, callback
-/*: () => mixed*/
-) {
-  if (!hasWindow) {
-    callback();
-    return;
-  }
 
-  window.addEventListener(event, callback);
+function addWindowEventListener(event, callback) {//event:string, callback: () => mixed
+    if (!hasWindow) {
+
+        callback();
+        return;
+    }
+    window.addEventListener(event, callback);
 }
-function removeWindowEventListener(event
-/*:string*/
-, callback
-/*: () => mixed*/
-) {
-  if (!hasWindow) {
-    return;
-  }
 
-  window.removeEventListener(event, callback);
+function removeWindowEventListener(event, callback) {//event:string, callback: () => mixed
+    if (!hasWindow) {
+        return;
+    }
+    window.removeEventListener(event, callback);
 }
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridItem.vue?vue&type=script&lang=js&
 
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
+
+
+
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridItem.vue?vue&type=script&lang=js&
+
+
+
+
 //
 //
 //
@@ -4486,34 +4831,13 @@ function removeWindowEventListener(event
 //
 
 
- //    var eventBus = require('./eventBus');
+ //  var eventBus = require('./eventBus');
 
 var interact = __webpack_require__("fb3a");
 
 /* harmony default export */ var GridItemvue_type_script_lang_js_ = ({
-  name: "GridItem",
+  //name: "GridItem",
   props: {
-    /*cols: {
-     type: Number,
-     required: true
-     },*/
-
-    /*containerWidth: {
-     type: Number,
-     required: true
-      },
-     rowHeight: {
-     type: Number,
-     required: true
-     },
-     margin: {
-     type: Array,
-     required: true
-     },
-     maxRows: {
-     type: Number,
-     required: true
-     },*/
     isDraggable: {
       type: Boolean,
       required: false,
@@ -4524,17 +4848,6 @@ var interact = __webpack_require__("fb3a");
       required: false,
       default: null
     },
-
-    /*useCssTransforms: {
-     type: Boolean,
-     required: true
-     },
-     static: {
-     type: Boolean,
-     required: false,
-     default: false
-     },
-     */
     minH: {
       type: Number,
       required: false,
@@ -4592,6 +4905,7 @@ var interact = __webpack_require__("fb3a");
   },
   inject: ["eventBus"],
   data: function data() {
+    var me = this;
     return {
       cols: 1,
       containerWidth: 100,
@@ -4602,13 +4916,9 @@ var interact = __webpack_require__("fb3a");
       resizable: null,
       useCssTransforms: true,
       isDragging: false,
-      dragging: null,
       isResizing: false,
+      dragging: null,
       resizing: null,
-      lastX: NaN,
-      lastY: NaN,
-      lastW: NaN,
-      lastH: NaN,
       style: {},
       rtl: false,
       dragEventSet: false,
@@ -4617,170 +4927,182 @@ var interact = __webpack_require__("fb3a");
       previousH: null,
       previousX: null,
       previousY: null,
-      innerX: this.x,
-      innerY: this.y,
-      innerW: this.w,
-      innerH: this.h
+      innerX: me.x,
+      innerY: me.y,
+      innerW: me.w,
+      innerH: me.h,
+      lastX: NaN,
+      lastY: NaN,
+      lastW: NaN,
+      lastH: NaN
     };
   },
   created: function created() {
-    var _this = this;
+    var me = this;
 
-    var self = this; // Accessible refernces of functions for removing in beforeDestroy
-
-    self.updateWidthHandler = function (width) {
-      self.updateWidth(width);
-    };
-
-    self.compactHandler = function (layout) {
-      self.compact(layout);
-    };
-
-    self.setDraggableHandler = function (isDraggable) {
-      if (self.isDraggable === null) {
-        self.draggable = isDraggable;
+    me.setDraggableHandler = function (isDraggable) {
+      if (me.isDraggable === null) {
+        me.draggable = isDraggable;
       }
     };
 
-    self.setResizableHandler = function (isResizable) {
-      if (self.isResizable === null) {
-        self.resizable = isResizable;
+    me.setResizableHandler = function (isResizable) {
+      if (me.isResizable === null) {
+        me.resizable = isResizable;
       }
     };
 
-    self.setRowHeightHandler = function (rowHeight) {
-      self.rowHeight = rowHeight;
+    me.setRowHeightHandler = function (rowHeight) {
+      me.rowHeight = rowHeight;
     };
 
-    self.directionchangeHandler = function () {
-      _this.rtl = getDocumentDir();
-
-      _this.compact();
+    me.directionchangeHandler = function () {
+      me.rtl = getDocumentDir();
+      me.compact();
     };
 
-    self.setColNum = function (colNum) {
-      self.cols = parseInt(colNum);
+    me.setColNum = function (colNum) {
+      me.cols = parseInt(colNum);
     };
 
-    this.eventBus.$on('updateWidth', self.updateWidthHandler);
-    this.eventBus.$on('compact', self.compactHandler);
-    this.eventBus.$on('setDraggable', self.setDraggableHandler);
-    this.eventBus.$on('setResizable', self.setResizableHandler);
-    this.eventBus.$on('setRowHeight', self.setRowHeightHandler);
-    this.eventBus.$on('directionchange', self.directionchangeHandler);
-    this.eventBus.$on('setColNum', self.setColNum);
-    this.rtl = getDocumentDir();
+    var eventBus = me.eventBus;
+    eventBus.$on('updateWidth', me.updateWidth);
+    eventBus.$on('compact', me.compact);
+    eventBus.$on('setDraggable', me.setDraggableHandler);
+    eventBus.$on('setResizable', me.setResizableHandler);
+    eventBus.$on('setRowHeight', me.setRowHeightHandler);
+    eventBus.$on('directionchange', me.directionchangeHandler);
+    eventBus.$on('setColNum', me.setColNum);
+    me.rtl = getDocumentDir();
   },
   beforeDestroy: function beforeDestroy() {
-    var self = this; //Remove listeners
-
-    this.eventBus.$off('updateWidth', self.updateWidthHandler);
-    this.eventBus.$off('compact', self.compactHandler);
-    this.eventBus.$off('setDraggable', self.setDraggableHandler);
-    this.eventBus.$off('setResizable', self.setResizableHandler);
-    this.eventBus.$off('setRowHeight', self.setRowHeightHandler);
-    this.eventBus.$off('directionchange', self.directionchangeHandler);
-    this.eventBus.$off('setColNum', self.setColNum);
-    this.interactObj.unset(); // destroy interact intance
+    var me = this;
+    var eventBus = me.eventBus;
+    eventBus.$off('updateWidth', me.updateWidth);
+    eventBus.$off('compact', me.compact);
+    eventBus.$off('setDraggable', me.setDraggableHandler);
+    eventBus.$off('setResizable', me.setResizableHandler);
+    eventBus.$off('setRowHeight', me.setRowHeightHandler);
+    eventBus.$off('directionchange', me.directionchangeHandler);
+    eventBus.$off('setColNum', me.setColNum);
+    me.interactObj.unset(); // destroy interact intance
   },
   mounted: function mounted() {
-    this.cols = this.$parent.colNum;
-    this.rowHeight = this.$parent.rowHeight;
-    this.containerWidth = this.$parent.width !== null ? this.$parent.width : 100;
-    this.margin = this.$parent.margin !== undefined ? this.$parent.margin : [10, 10];
-    this.maxRows = this.$parent.maxRows;
+    var me = this;
+    console.log("Grid Item mounted!");
+    var parent = me.$parent;
+    me.cols = parent.colNum;
+    me.rowHeight = parent.rowHeight;
+    me.containerWidth = parent.$el.clientWidth;
+    me.margin = parent.margin !== undefined ? parent.margin : me.margin; //[10, 10];
 
-    if (this.isDraggable === null) {
-      this.draggable = this.$parent.isDraggable;
-    } else {
-      this.draggable = this.isDraggable;
-    }
+    me.maxRows = parent.maxRows;
+    me.draggable = me.isDraggable === null ? parent.isDraggable : me.isDraggable;
+    me.resizable = me.isResizable === null ? parent.isResizable : me.isResizable;
+    me.useCssTransforms = parent.useCssTransforms; //console.log("mounted");
 
-    if (this.isResizable === null) {
-      this.resizable = this.$parent.isResizable;
-    } else {
-      this.resizable = this.isResizable;
-    }
-
-    this.useCssTransforms = this.$parent.useCssTransforms;
-    this.createStyle();
+    me.createStyle();
   },
   watch: {
     isDraggable: function isDraggable() {
-      this.draggable = this.isDraggable;
+      var me = this;
+      me.draggable = me.isDraggable;
     },
     draggable: function draggable() {
-      var self = this;
+      var me = this;
 
-      if (this.interactObj === null || this.interactObj === undefined) {
-        this.interactObj = interact(this.$refs.item);
+      if (me.interactObj === null || me.interactObj === undefined) {
+        me.interactObj = interact(me.$el);
       }
 
-      if (this.draggable) {
+      if (me.draggable) {
         var opts = {
-          ignoreFrom: this.dragIgnoreFrom,
-          allowFrom: this.dragAllowFrom
+          ignoreFrom: me.dragIgnoreFrom,
+          allowFrom: me.dragAllowFrom
         };
-        this.interactObj.draggable(opts);
-        /*this.interactObj.draggable({allowFrom: '.vue-draggable-handle'});*/
+        me.interactObj.draggable(opts);
+        /*me.interactObj.draggable({allowFrom: '.vue-draggable-handle'});*/
 
-        if (!this.dragEventSet) {
-          this.dragEventSet = true;
-          this.interactObj.on('dragstart dragmove dragend', function (event) {
-            self.handleDrag(event);
+        if (!me.dragEventSet) {
+          me.dragEventSet = true;
+          me.interactObj.on('dragstart dragmove dragend', function (event) {
+            me.handleDrag(event);
           });
         }
       } else {
-        this.interactObj.draggable({
+        me.interactObj.draggable({
           enabled: false
         });
       }
     },
     isResizable: function isResizable() {
-      this.resizable = this.isResizable;
+      var me = this;
+      me.resizable = me.isResizable;
     },
     resizable: function resizable() {
-      this.tryMakeResizable();
+      var me = this;
+      me.tryMakeResizable();
     },
     rowHeight: function rowHeight() {
-      this.createStyle();
+      var me = this;
+      me.createStyle();
     },
     cols: function cols() {
-      this.tryMakeResizable();
-      this.createStyle();
+      var me = this;
+      me.tryMakeResizable();
+      me.createStyle();
     },
     containerWidth: function containerWidth() {
-      this.tryMakeResizable();
-      this.createStyle();
+      var me = this;
+      me.tryMakeResizable();
+      me.createStyle();
     },
     x: function x(newVal) {
-      this.innerX = newVal;
-      this.createStyle();
+      var me = this;
+      me.innerX = newVal;
+      me.createStyle();
     },
     y: function y(newVal) {
-      this.innerY = newVal;
-      this.createStyle();
+      var me = this;
+      me.innerY = newVal;
+      me.createStyle();
     },
     h: function h(newVal) {
-      this.innerH = newVal;
-      this.createStyle();
+      var me = this;
+      me.innerH = newVal;
+      me.createStyle();
     },
     w: function w(newVal) {
-      this.innerW = newVal;
-      this.createStyle();
+      var me = this;
+      me.innerW = newVal;
+      me.createStyle();
     },
     renderRtl: function renderRtl() {
-      // console.log("### renderRtl");
-      this.tryMakeResizable();
-      this.createStyle();
+      var me = this;
+      me.tryMakeResizable();
+      me.createStyle();
     }
   },
   computed: {
+    gridItemClass: function gridItemClass() {
+      var me = this;
+      return {
+        "vue-resizable": me.resizable,
+        "resizing": me.isResizing,
+        "vue-draggable-dragging": me.isDragging,
+        "cssTransforms": me.useCssTransforms,
+        "render-rtl": me.renderRtl,
+        "disable-userselect": me.isDragging
+      };
+    },
     renderRtl: function renderRtl() {
-      return this.$parent.isMirrored ? !this.rtl : this.rtl;
+      var me = this;
+      return me.$parent.isMirrored ? !me.rtl : me.rtl;
     },
     resizableHandleClass: function resizableHandleClass() {
-      if (this.renderRtl) {
+      var me = this;
+
+      if (me.renderRtl) {
         return 'vue-resizable-handle vue-rtl-resizable-handle';
       } else {
         return 'vue-resizable-handle';
@@ -4789,53 +5111,58 @@ var interact = __webpack_require__("fb3a");
   },
   methods: {
     createStyle: function createStyle() {
-      if (this.x + this.w > this.cols) {
-        this.innerX = 0;
-        this.innerW = this.w > this.cols ? this.cols : this.w;
+      var me = this;
+
+      if (me.x + me.w > me.cols) {
+        me.innerX = 0;
+        me.innerW = me.w > me.cols ? me.cols : me.w;
       } else {
-        this.innerX = this.x;
-        this.innerW = this.w;
+        me.innerX = me.x;
+        me.innerW = me.w;
       }
 
-      var pos = this.calcPosition(this.innerX, this.innerY, this.innerW, this.innerH);
+      var pos = me.calcPosition(me.innerX, me.innerY, me.innerW, me.innerH);
 
-      if (this.isDragging) {
-        pos.top = this.dragging.top; //                    Add rtl support
+      if (me.isDragging) {
+        pos.top = me.dragging.top;
 
-        if (this.renderRtl) {
-          pos.right = this.dragging.left;
+        if (me.renderRtl) {
+          pos.right = me.dragging.left;
         } else {
-          pos.left = this.dragging.left;
+          pos.left = me.dragging.left;
         }
       }
 
-      if (this.isResizing) {
-        pos.width = this.resizing.width;
-        pos.height = this.resizing.height;
+      if (me.isResizing) {
+        var resizing = me.resizing;
+        pos.width = resizing.width;
+        pos.height = resizing.height;
       }
 
       var style; // CSS Transforms support (default)
 
-      if (this.useCssTransforms) {
-        //                    Add rtl support
-        if (this.renderRtl) {
+      if (me.useCssTransforms) {
+        // Add rtl support
+        if (me.renderRtl) {
           style = setTransformRtl(pos.top, pos.right, pos.width, pos.height);
         } else {
           style = setTransform(pos.top, pos.left, pos.width, pos.height);
         }
       } else {
         // top,left (slow)
-        //                    Add rtl support
-        if (this.renderRtl) {
+        // Add rtl support
+        if (me.renderRtl) {
           style = setTopRight(pos.top, pos.right, pos.width, pos.height);
         } else {
           style = setTopLeft(pos.top, pos.left, pos.width, pos.height);
         }
-      }
+      } //console.log("createStyle-> " + me._uid + " height: " + style.height + "; width" + style.width);
 
-      this.style = style;
+
+      me.style = style;
     },
     handleResize: function handleResize(event) {
+      var me = this;
       var position = getControlPosition(event); // Get the current drag point from the event. This is used as the offset.
 
       if (position == null) return; // not possible but satisfies flow
@@ -4851,63 +5178,67 @@ var interact = __webpack_require__("fb3a");
       switch (event.type) {
         case "resizestart":
           {
-            this.previousW = this.innerW;
-            this.previousH = this.innerH;
-            pos = this.calcPosition(this.innerX, this.innerY, this.innerW, this.innerH);
+            me.previousW = me.innerW;
+            me.previousH = me.innerH;
+            pos = me.calcPosition(me.innerX, me.innerY, me.innerW, me.innerH);
             newSize.width = pos.width;
             newSize.height = pos.height;
-            this.resizing = newSize;
-            this.isResizing = true;
+            me.resizing = newSize;
+            me.isResizing = true;
+            me.fireEvent("resizingStart", newSize);
             break;
           }
 
         case "resizemove":
           {
-            //                        console.log("### resize => " + event.type + ", lastW=" + this.lastW + ", lastH=" + this.lastH);
-            var coreEvent = createCoreData(this.lastW, this.lastH, x, y);
+            //console.log("### resize => " + event.type + ", lastW=" + me.lastW + ", lastH=" + me.lastH);
+            var coreEvent = createCoreData(me.lastW, me.lastH, x, y);
+            var resizing = me.resizing;
 
-            if (this.renderRtl) {
-              newSize.width = this.resizing.width - coreEvent.deltaX;
+            if (me.renderRtl) {
+              newSize.width = resizing.width - coreEvent.deltaX;
             } else {
-              newSize.width = this.resizing.width + coreEvent.deltaX;
+              newSize.width = resizing.width + coreEvent.deltaX;
             }
 
-            newSize.height = this.resizing.height + coreEvent.deltaY; ///console.log("### resize => " + event.type + ", deltaX=" + coreEvent.deltaX + ", deltaY=" + coreEvent.deltaY);
+            newSize.height = resizing.height + coreEvent.deltaY; //console.log("### resize => " + event.type + ", deltaX=" + coreEvent.deltaX + ", deltaY=" + coreEvent.deltaY);
 
-            this.resizing = newSize;
+            me.resizing = newSize;
+            me.fireEvent("resizing", newSize);
             break;
           }
 
         case "resizeend":
           {
-            //console.log("### resize end => x=" +this.innerX + " y=" + this.innerY + " w=" + this.innerW + " h=" + this.innerH);
-            pos = this.calcPosition(this.innerX, this.innerY, this.innerW, this.innerH);
+            //console.log("### resize end => x=" +me.innerX + " y=" + me.innerY + " w=" + me.innerW + " h=" + me.innerH);
+            pos = me.calcPosition(me.innerX, me.innerY, me.innerW, me.innerH);
             newSize.width = pos.width;
-            newSize.height = pos.height; //                        console.log("### resize end => " + JSON.stringify(newSize));
+            newSize.height = pos.height; //console.log("### resize end => " + JSON.stringify(newSize));
 
-            this.resizing = null;
-            this.isResizing = false;
+            me.resizing = null;
+            me.isResizing = false; //me.fireEvent("resizingEnd", newSize);
+
             break;
           }
       } // Get new WH
 
 
-      pos = this.calcWH(newSize.height, newSize.width);
+      pos = me.calcWH(newSize.height, newSize.width);
 
-      if (pos.w < this.minW) {
-        pos.w = this.minW;
+      if (pos.w < me.minW) {
+        pos.w = me.minW;
       }
 
-      if (pos.w > this.maxW) {
-        pos.w = this.maxW;
+      if (pos.w > me.maxW) {
+        pos.w = me.maxW;
       }
 
-      if (pos.h < this.minH) {
-        pos.h = this.minH;
+      if (pos.h < me.minH) {
+        pos.h = me.minH;
       }
 
-      if (pos.h > this.maxH) {
-        pos.h = this.maxH;
+      if (pos.h > me.maxH) {
+        pos.h = me.maxH;
       }
 
       if (pos.h < 1) {
@@ -4918,24 +5249,36 @@ var interact = __webpack_require__("fb3a");
         pos.w = 1;
       }
 
-      this.lastW = x;
-      this.lastH = y;
+      me.lastW = x;
+      me.lastH = y;
+      var gridItemLayout = {
+        h: pos.h,
+        w: pos.w,
+        height: newSize.height,
+        width: newSize.width
+      };
+      /*if (me.innerW !== gridItemLayout.w || me.innerH !== gridItemLayout.h) {
+        const placeholderSize = me.calcPosition(me.innerX, me.innerY, me.innerW, me.innerH);
+        console.log("placeholderSize" + placeholderSize.height + " _ " + placeholderSize.width);
+        gridItemLayout.height = placeholderSize.height;
+        gridItemLayout.width = placeholderSize.width;
+        me.fireEvent("resize", gridItemLayout);
+      }*/
 
-      if (this.innerW !== pos.w || this.innerH !== pos.h) {
-        this.$emit("resize", this.i, pos.h, pos.w, newSize.height, newSize.width);
+      if (event.type === "resizeend" && (me.previousW !== me.innerW || me.previousH !== me.innerH)) {
+        me.fireEvent("onResizingEnd", gridItemLayout);
       }
 
-      if (event.type === "resizeend" && (this.previousW !== this.innerW || this.previousH !== this.innerH)) {
-        this.$emit("resized", this.i, pos.h, pos.w, newSize.height, newSize.width);
-      }
-
-      this.eventBus.$emit("resizeEvent", event.type, this.i, this.innerX, this.innerY, pos.h, pos.w);
+      me.eventBus.$emit("resizeEvent", event.type, me.i, me.innerX, me.innerY, pos.h, pos.w);
     },
     handleDrag: function handleDrag(event) {
-      if (this.isResizing) return;
-      var position = getControlPosition(event); // Get the current drag point from the event. This is used as the offset.
+      var me = this;
 
-      if (position === null) return; // not possible but satisfies flow
+      if (me.isResizing) {
+        return false;
+      }
+
+      var position = getControlPosition(event); // Get the current drag point from the event. This is used as the offset.
 
       var x = position.x,
           y = position.y; // let shouldUpdate = false;
@@ -4948,62 +5291,67 @@ var interact = __webpack_require__("fb3a");
       switch (event.type) {
         case "dragstart":
           {
-            this.previousX = this.innerX;
-            this.previousY = this.innerY;
+            me.previousX = me.innerX;
+            me.previousY = me.innerY;
             var parentRect = event.target.offsetParent.getBoundingClientRect();
             var clientRect = event.target.getBoundingClientRect();
 
-            if (this.renderRtl) {
+            if (me.renderRtl) {
               newPosition.left = (clientRect.right - parentRect.right) * -1;
             } else {
               newPosition.left = clientRect.left - parentRect.left;
             }
 
             newPosition.top = clientRect.top - parentRect.top;
-            this.dragging = newPosition;
-            this.isDragging = true;
-            break;
-          }
-
-        case "dragend":
-          {
-            if (!this.isDragging) return;
-
-            var _parentRect = event.target.offsetParent.getBoundingClientRect();
-
-            var _clientRect = event.target.getBoundingClientRect(); //                        Add rtl support
-
-
-            if (this.renderRtl) {
-              newPosition.left = (_clientRect.right - _parentRect.right) * -1;
-            } else {
-              newPosition.left = _clientRect.left - _parentRect.left;
-            }
-
-            newPosition.top = _clientRect.top - _parentRect.top; //                        console.log("### drag end => " + JSON.stringify(newPosition));
-            //                        console.log("### DROP: " + JSON.stringify(newPosition));
-
-            this.dragging = null;
-            this.isDragging = false; // shouldUpdate = true;
-
+            me.dragging = newPosition;
+            me.isDragging = true;
+            me.fireEvent("movingStart", newPosition);
             break;
           }
 
         case "dragmove":
           {
-            var coreEvent = createCoreData(this.lastX, this.lastY, x, y); //                        Add rtl support
+            var coreEvent = createCoreData(me.lastX, me.lastY, x, y); // Add rtl support
 
-            if (this.renderRtl) {
-              newPosition.left = this.dragging.left - coreEvent.deltaX;
+            if (me.renderRtl) {
+              newPosition.left = me.dragging.left - coreEvent.deltaX;
             } else {
-              newPosition.left = this.dragging.left + coreEvent.deltaX;
+              newPosition.left = me.dragging.left + coreEvent.deltaX;
             }
 
-            newPosition.top = this.dragging.top + coreEvent.deltaY; //                        console.log("### drag => " + event.type + ", x=" + x + ", y=" + y);
-            //                        console.log("### drag => " + event.type + ", deltaX=" + coreEvent.deltaX + ", deltaY=" + coreEvent.deltaY);
-            //                        console.log("### drag end => " + JSON.stringify(newPosition));
+            newPosition.top = me.dragging.top + coreEvent.deltaY; // console.log("### drag => " + event.type + ", x=" + x + ", y=" + y);
+            // console.log("### drag => " + event.type + ", deltaX=" + coreEvent.deltaX + ", deltaY=" + coreEvent.deltaY);
+            // console.log("### drag end => " + JSON.stringify(newPosition));
 
-            this.dragging = newPosition;
+            me.dragging = newPosition;
+            me.fireEvent("moving", newPosition);
+            break;
+          }
+
+        case "dragend":
+          {
+            if (!me.isDragging) {
+              return false;
+            }
+
+            var _parentRect = event.target.offsetParent.getBoundingClientRect();
+
+            var _clientRect = event.target.getBoundingClientRect(); // Add rtl support
+
+
+            if (me.renderRtl) {
+              newPosition.left = (_clientRect.right - _parentRect.right) * -1;
+            } else {
+              newPosition.left = _clientRect.left - _parentRect.left;
+            }
+
+            newPosition.top = _clientRect.top - _parentRect.top; // console.log("### drag end => " + JSON.stringify(newPosition));
+            // console.log("### DROP: " + JSON.stringify(newPosition));
+
+            me.dragging = null;
+            me.isDragging = false; // shouldUpdate = true;
+
+            me.fireEvent("movingEnd", newPosition);
             break;
           }
       } // Get new XY
@@ -5011,50 +5359,41 @@ var interact = __webpack_require__("fb3a");
 
       var pos;
 
-      if (this.renderRtl) {
-        pos = this.calcXY(newPosition.top, newPosition.left);
+      if (me.renderRtl) {
+        pos = me.calcXY(newPosition.top, newPosition.left);
       } else {
-        pos = this.calcXY(newPosition.top, newPosition.left);
+        pos = me.calcXY(newPosition.top, newPosition.left);
       }
 
-      this.lastX = x;
-      this.lastY = y;
-
-      if (this.innerX !== pos.x || this.innerY !== pos.y) {
-        this.$emit("move", this.i, pos.x, pos.y);
+      me.lastX = x;
+      me.lastY = y;
+      /*if (me.innerX !== pos.x || me.innerY !== pos.y) {
+        me.$emit("move", me.i, pos.x, pos.y);
       }
+      if (event.type === "dragend" && (me.previousX !== me.innerX || me.previousY !== me.innerY)) {
+        me.$emit("moved", me.i, pos.x, pos.y);
+      }*/
 
-      if (event.type === "dragend" && (this.previousX !== this.innerX || this.previousY !== this.innerY)) {
-        this.$emit("moved", this.i, pos.x, pos.y);
-      }
-
-      this.eventBus.$emit("dragEvent", event.type, this.i, pos.x, pos.y, this.innerH, this.innerW);
+      me.eventBus.$emit("dragEvent", event.type, me.i, pos.x, pos.y, me.innerH, me.innerW);
     },
     calcPosition: function calcPosition(x, y, w, h) {
-      var colWidth = this.calcColWidth(); // add rtl support
+      var me = this;
+      var colWidth = me.calcColWidth();
+      var out = {
+        top: Math.round(me.rowHeight * y + (y + 1) * me.margin[1]),
+        // 0 * Infinity = NaN, which causes problems with resize constriants;
+        // Fix this if it occurs.
+        // Note we do it here rather than later because Math.round(Infinity) causes deopt
+        width: w === Infinity ? w : Math.round(colWidth * w + Math.max(0, w - 1) * me.margin[0]),
+        height: h === Infinity ? h : Math.round(me.rowHeight * h + Math.max(0, h - 1) * me.margin[1]),
+        colWidth: colWidth //temp test not used yet
 
-      var out;
+      };
 
-      if (this.renderRtl) {
-        out = {
-          right: Math.round(colWidth * x + (x + 1) * this.margin[0]),
-          top: Math.round(this.rowHeight * y + (y + 1) * this.margin[1]),
-          // 0 * Infinity === NaN, which causes problems with resize constriants;
-          // Fix this if it occurs.
-          // Note we do it here rather than later because Math.round(Infinity) causes deopt
-          width: w === Infinity ? w : Math.round(colWidth * w + Math.max(0, w - 1) * this.margin[0]),
-          height: h === Infinity ? h : Math.round(this.rowHeight * h + Math.max(0, h - 1) * this.margin[1])
-        };
+      if (me.renderRtl) {
+        out.right = Math.round(colWidth * x + (x + 1) * me.margin[0]);
       } else {
-        out = {
-          left: Math.round(colWidth * x + (x + 1) * this.margin[0]),
-          top: Math.round(this.rowHeight * y + (y + 1) * this.margin[1]),
-          // 0 * Infinity === NaN, which causes problems with resize constriants;
-          // Fix this if it occurs.
-          // Note we do it here rather than later because Math.round(Infinity) causes deopt
-          width: w === Infinity ? w : Math.round(colWidth * w + Math.max(0, w - 1) * this.margin[0]),
-          height: h === Infinity ? h : Math.round(this.rowHeight * h + Math.max(0, h - 1) * this.margin[1])
-        };
+        out.left = Math.round(colWidth * x + (x + 1) * me.margin[0]);
       }
 
       return out;
@@ -5068,7 +5407,8 @@ var interact = __webpack_require__("fb3a");
      */
     // TODO check if this function needs change in order to support rtl.
     calcXY: function calcXY(top, left) {
-      var colWidth = this.calcColWidth(); // left = colWidth * x + margin * (x + 1)
+      var me = this;
+      var colWidth = me.calcColWidth(); // left = colWidth * x + margin * (x + 1)
       // l = cx + m(x+1)
       // l = cx + mx + m
       // l - m = cx + mx
@@ -5076,11 +5416,11 @@ var interact = __webpack_require__("fb3a");
       // (l - m) / (c + m) = x
       // x = (left - margin) / (coldWidth + margin)
 
-      var x = Math.round((left - this.margin[0]) / (colWidth + this.margin[0]));
-      var y = Math.round((top - this.margin[1]) / (this.rowHeight + this.margin[1])); // Capping
+      var x = Math.round((left - me.margin[0]) / (colWidth + me.margin[0]));
+      var y = Math.round((top - me.margin[1]) / (me.rowHeight + me.margin[1])); // Capping
 
-      x = Math.max(Math.min(x, this.cols - this.innerW), 0);
-      y = Math.max(Math.min(y, this.maxRows - this.innerH), 0);
+      x = Math.max(Math.min(x, me.cols - me.innerW), 0);
+      y = Math.max(Math.min(y, me.maxRows - me.innerH), 0);
       return {
         x: x,
         y: y
@@ -5088,7 +5428,8 @@ var interact = __webpack_require__("fb3a");
     },
     // Helper for generating column width
     calcColWidth: function calcColWidth() {
-      var colWidth = (this.containerWidth - this.margin[0] * (this.cols + 1)) / this.cols; // console.log("### COLS=" + this.cols + " COL WIDTH=" + colWidth + " MARGIN " + this.margin[0]);
+      var me = this;
+      var colWidth = (me.containerWidth - me.margin[0] * (me.cols + 1)) / me.cols; // console.log("### COLS=" + me.cols + " COL WIDTH=" + colWidth + " MARGIN " + me.margin[0]);
 
       return colWidth;
     },
@@ -5100,52 +5441,55 @@ var interact = __webpack_require__("fb3a");
      * @return {Object} w, h as grid units.
      */
     calcWH: function calcWH(height, width) {
-      var colWidth = this.calcColWidth(); // width = colWidth * w - (margin * (w - 1))
+      var me = this;
+      var colWidth = me.calcColWidth(); // width = colWidth * w - (margin * (w - 1))
       // ...
       // w = (width + margin) / (colWidth + margin)
 
-      var w = Math.round((width + this.margin[0]) / (colWidth + this.margin[0]));
-      var h = Math.round((height + this.margin[1]) / (this.rowHeight + this.margin[1])); // Capping
+      var w = Math.round((width + me.margin[0]) / (colWidth + me.margin[0]));
+      var h = Math.round((height + me.margin[1]) / (me.rowHeight + me.margin[1])); // Capping
 
-      w = Math.max(Math.min(w, this.cols - this.innerX), 0);
-      h = Math.max(Math.min(h, this.maxRows - this.innerY), 0);
+      w = Math.max(Math.min(w, me.cols - me.innerX), 0);
+      h = Math.max(Math.min(h, me.maxRows - me.innerY), 0);
       return {
         w: w,
         h: h
       };
     },
     updateWidth: function updateWidth(width, colNum) {
-      this.containerWidth = width;
+      var me = this;
+      me.containerWidth = width;
 
       if (colNum !== undefined && colNum !== null) {
-        this.cols = colNum;
+        me.cols = colNum;
       }
     },
     compact: function compact() {
-      this.createStyle();
+      var me = this;
+      me.createStyle();
     },
     tryMakeResizable: function tryMakeResizable() {
-      var self = this;
+      var me = this;
 
-      if (this.interactObj === null || this.interactObj === undefined) {
-        this.interactObj = interact(this.$refs.item);
+      if (me.interactObj === null || me.interactObj === undefined) {
+        me.interactObj = interact(me.$el);
       }
 
-      if (this.resizable) {
-        var maximum = this.calcPosition(0, 0, this.maxW, this.maxH);
-        var minimum = this.calcPosition(0, 0, this.minW, this.minH); // console.log("### MAX " + JSON.stringify(maximum));
+      if (me.resizable) {
+        var maximum = me.calcPosition(0, 0, me.maxW, me.maxH);
+        var minimum = me.calcPosition(0, 0, me.minW, me.minH); // console.log("### MAX " + JSON.stringify(maximum));
         // console.log("### MIN " + JSON.stringify(minimum));
 
         var opts = {
           preserveAspectRatio: true,
-          // allowFrom: "." + this.resizableHandleClass,
+          // allowFrom: "." + me.resizableHandleClass,
           edges: {
             left: false,
-            right: "." + this.resizableHandleClass,
-            bottom: "." + this.resizableHandleClass,
+            right: "." + me.resizableHandleClass,
+            bottom: "." + me.resizableHandleClass,
             top: false
           },
-          ignoreFrom: this.resizeIgnoreFrom,
+          ignoreFrom: me.resizeIgnoreFrom,
           restrictSize: {
             min: {
               height: minimum.height,
@@ -5157,41 +5501,42 @@ var interact = __webpack_require__("fb3a");
             }
           }
         };
-        this.interactObj.resizable(opts);
+        me.interactObj.resizable(opts);
 
-        if (!this.resizeEventSet) {
-          this.resizeEventSet = true;
-          this.interactObj.on('resizestart resizemove resizeend', function (event) {
-            self.handleResize(event);
+        if (!me.resizeEventSet) {
+          me.resizeEventSet = true;
+          me.interactObj.on('resizestart resizemove resizeend', function (event) {
+            me.handleResize(event);
           });
         }
       } else {
-        this.interactObj.resizable({
+        me.interactObj.resizable({
           enabled: false
         });
       }
     },
     autoSize: function autoSize() {
-      // ok here we want to calculate if a resize is needed
-      this.previousW = this.innerW;
-      this.previousH = this.innerH;
-      var newSize = this.$slots.default[0].elm.getBoundingClientRect();
-      var pos = this.calcWH(newSize.height, newSize.width);
+      var me = this; // ok here we want to calculate if a resize is needed
 
-      if (pos.w < this.minW) {
-        pos.w = this.minW;
+      me.previousW = me.innerW;
+      me.previousH = me.innerH;
+      var newSize = me.$slots.default[0].elm.getBoundingClientRect();
+      var pos = me.calcWH(newSize.height, newSize.width);
+
+      if (pos.w < me.minW) {
+        pos.w = me.minW;
       }
 
-      if (pos.w > this.maxW) {
-        pos.w = this.maxW;
+      if (pos.w > me.maxW) {
+        pos.w = me.maxW;
       }
 
-      if (pos.h < this.minH) {
-        pos.h = this.minH;
+      if (pos.h < me.minH) {
+        pos.h = me.minH;
       }
 
-      if (pos.h > this.maxH) {
-        pos.h = this.maxH;
+      if (pos.h > me.maxH) {
+        pos.h = me.maxH;
       }
 
       if (pos.h < 1) {
@@ -5200,18 +5545,46 @@ var interact = __webpack_require__("fb3a");
 
       if (pos.w < 1) {
         pos.w = 1;
-      } // this.lastW = x; // basicly, this is copied from resizehandler, but shouldn't be needed
-      // this.lastH = y;
+      } // me.lastW = x; // basicly, me is copied from resizehandler, but shouldn't be needed
+      // me.lastH = y;
 
 
-      if (this.innerW !== pos.w || this.innerH !== pos.h) {
-        this.$emit("resize", this.i, pos.h, pos.w, newSize.height, newSize.width);
+      var gridItemLayout = {
+        h: pos.h,
+        w: pos.w,
+        height: newSize.height,
+        width: newSize.width
+      };
+
+      if (me.innerW !== gridItemLayout.w || me.innerH !== gridItemLayout.h) {
+        me.fireEvent("resizing", gridItemLayout);
       }
 
-      if (this.previousW !== pos.w || this.previousH !== pos.h) {
-        this.$emit("resized", this.i, pos.h, pos.w, newSize.height, newSize.width);
-        this.eventBus.$emit("resizeEvent", "resizeend", this.i, this.innerX, this.innerY, pos.h, pos.w);
+      if (me.previousW !== gridItemLayout.w || me.previousH !== gridItemLayout.h) {
+        me.fireEvent("resizingEnd", gridItemLayout);
+        me.eventBus.$emit("resizeEvent", "resizeend", me.i, me.innerX, me.innerY, pos.h, pos.w);
       }
+    },
+    fireEvent: function fireEvent(eventName, gridItemLayout) {
+      var me = this; //eventName in [
+      //  "resizingStart", "resizing", "resizingEnd",
+      //  "movingStart", "moving", "movingEnd"
+      //]
+
+      me.$emit(eventName, {
+        x: gridItemLayout.left,
+        //"movingStart", "moving", "movingEnd"
+        y: gridItemLayout.top,
+        //"movingStart", "moving", "movingEnd"
+        h: gridItemLayout.h,
+        //"resizingStart", "resizing", "resizingEnd",
+        w: gridItemLayout.w,
+        //"resizingStart", "resizing", "resizingEnd",
+        width: gridItemLayout.width,
+        //"resizingStart", "resizing", "resizingEnd",
+        height: gridItemLayout.height //"resizingStart", "resizing", "resizingEnd",
+
+      });
     }
   }
 });
@@ -5337,16 +5710,18 @@ var component = normalizeComponent(
 
 component.options.__file = "GridItem.vue"
 /* harmony default export */ var GridItem = (component.exports);
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules//.cache//vue-loader","cacheIdentifier":"78a686b4-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridLayout.vue?vue&type=template&id=43dea452&
-var GridLayoutvue_type_template_id_43dea452_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{ref:"item",staticClass:"vue-grid-layout",style:(_vm.mergedStyle)},[_vm._t("default"),_c('grid-item',{directives:[{name:"show",rawName:"v-show",value:(_vm.isDragging),expression:"isDragging"}],staticClass:"vue-grid-placeholder",attrs:{"x":_vm.placeholder.x,"y":_vm.placeholder.y,"w":_vm.placeholder.w,"h":_vm.placeholder.h,"i":_vm.placeholder.i}})],2)}
-var GridLayoutvue_type_template_id_43dea452_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules//.cache//vue-loader","cacheIdentifier":"d988afac-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridLayout.vue?vue&type=template&id=35456a9f&
+var GridLayoutvue_type_template_id_35456a9f_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"vue-grid-layout",style:(_vm.mergedStyle)},[_vm._t("default"),_c('grid-item',{directives:[{name:"show",rawName:"v-show",value:(_vm.isDragging),expression:"isDragging"}],staticClass:"vue-grid-placeholder",attrs:{"x":_vm.placeholder.x,"y":_vm.placeholder.y,"w":_vm.placeholder.w,"h":_vm.placeholder.h,"i":_vm.placeholder.i}})],2)}
+var GridLayoutvue_type_template_id_35456a9f_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/GridLayout.vue?vue&type=template&id=43dea452&
+// CONCATENATED MODULE: ./src/components/GridLayout.vue?vue&type=template&id=35456a9f&
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridLayout.vue?vue&type=script&lang=js&
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--12-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/components/GridLayout.vue?vue&type=script&lang=js&
 
-//
+
+
+
 //
 //
 //
@@ -5368,19 +5743,17 @@ var GridLayoutvue_type_template_id_43dea452_staticRenderFns = []
 
 var elementResizeDetectorMaker = __webpack_require__("eec4");
 
- //var eventBus = require('./eventBus');
 
 
 
 /* harmony default export */ var GridLayoutvue_type_script_lang_js_ = ({
-  name: "GridLayout",
   provide: function provide() {
     return {
       eventBus: null
     };
   },
   components: {
-    GridItem: GridItem
+    "grid-item": GridItem
   },
   props: {
     // If true, the container height swells and contracts to fit contents
@@ -5420,7 +5793,7 @@ var elementResizeDetectorMaker = __webpack_require__("eec4");
     },
     useCssTransforms: {
       type: Boolean,
-      default: true
+      default: false
     },
     verticalCompact: {
       type: Boolean,
@@ -5447,145 +5820,157 @@ var elementResizeDetectorMaker = __webpack_require__("eec4");
     };
   },
   created: function created() {
-    var self = this; // Accessible refernces of functions for removing in beforeDestroy
-
-    self.resizeEventHandler = function (eventType, i, x, y, h, w) {
-      self.resizeEvent(eventType, i, x, y, h, w);
-    };
-
-    self.dragEventHandler = function (eventType, i, x, y, h, w) {
-      self.dragEvent(eventType, i, x, y, h, w);
-    };
-
-    self._provided.eventBus = new external_commonjs_vue_commonjs2_vue_root_Vue_default.a();
-    self.eventBus = self._provided.eventBus;
-    self.eventBus.$on('resizeEvent', self.resizeEventHandler);
-    self.eventBus.$on('dragEvent', self.dragEventHandler);
+    var me = this;
+    var eventBus = new external_commonjs_vue_commonjs2_vue_root_Vue_default.a();
+    me._provided.eventBus = eventBus;
+    me.eventBus = eventBus;
+    eventBus.$on("resizeEvent", me.resizeEvent);
+    eventBus.$on("dragEvent", me.dragEvent);
   },
   beforeDestroy: function beforeDestroy() {
-    //Remove listeners
-    this.eventBus.$off('resizeEvent', this.resizeEventHandler);
-    this.eventBus.$off('dragEvent', this.dragEventHandler);
-    removeWindowEventListener("resize", this.onWindowResize);
+    var me = this;
+    var eventBus = me.eventBus;
+    eventBus.$off("resizeEvent", me.resizeEvent);
+    eventBus.$off("dragEvent", me.dragEvent);
+    removeWindowEventListener("resize", me.onWindowResize);
   },
   mounted: function mounted() {
-    this.$nextTick(function () {
-      validateLayout(this.layout);
-      var self = this;
-      this.$nextTick(function () {
-        if (self.width === null) {
-          self.onWindowResize(); //self.width = self.$el.offsetWidth;
+    var me = this;
+    console.log("Grid Layout mounted"); //me.$nextTick(function () {
 
-          addWindowEventListener('resize', self.onWindowResize);
-        }
+    validateLayout(me.layout); //me.$nextTick(function() {
 
-        compact(self.layout, self.verticalCompact);
-        self.updateHeight();
-        self.$nextTick(function () {
-          var erd = elementResizeDetectorMaker({
-            strategy: "scroll" //<- For ultra performance.
+    if (me.width === null) {
+      me.onWindowResize(); //me.width = me.$el.offsetWidth;
 
-          });
-          erd.listenTo(self.$refs.item, function () {
-            self.onWindowResize();
-          });
-        });
-      });
-      addWindowEventListener("load", self.onWindowLoad.bind(this));
+      addWindowEventListener("resize", me.onWindowResize);
+    }
+
+    compact(me.layout, me.verticalCompact);
+    me.updateHeight(); //me.$nextTick(function () {
+
+    var erd = elementResizeDetectorMaker({
+      strategy: "scroll" //<- For ultra performance.
+
     });
+    erd.listenTo(me.$el, function () {
+      me.onWindowResize();
+    }); //});
+    //  });
+
+    addWindowEventListener("load", me.onWindowLoad.bind(me)); //??
+    //});
   },
   watch: {
     width: function width() {
-      this.$nextTick(function () {
-        //this.$broadcast("updateWidth", this.width);
-        this.eventBus.$emit("updateWidth", this.width);
-        this.updateHeight();
+      var me = this;
+      me.$nextTick(function () {
+        //me.$broadcast("updateWidth", me.width);
+        me.eventBus.$emit("updateWidth", me.width);
+        me.updateHeight();
       });
     },
     layout: function layout() {
-      this.layoutUpdate();
+      var me = this;
+      me.layoutUpdate();
     },
     colNum: function colNum(val) {
-      this.eventBus.$emit("setColNum", val);
+      var me = this;
+      me.eventBus.$emit("setColNum", val);
     },
     rowHeight: function rowHeight() {
-      this.eventBus.$emit("setRowHeight", this.rowHeight);
+      var me = this;
+      me.eventBus.$emit("setRowHeight", me.rowHeight);
     },
     isDraggable: function isDraggable() {
-      this.eventBus.$emit("setDraggable", this.isDraggable);
+      var me = this;
+      me.eventBus.$emit("setDraggable", me.isDraggable);
     },
     isResizable: function isResizable() {
-      this.eventBus.$emit("setResizable", this.isResizable);
+      var me = this;
+      me.eventBus.$emit("setResizable", me.isResizable);
     }
   },
   methods: {
     onWindowLoad: function onWindowLoad() {
-      var self = this;
+      console.log("onWindowLoad");
+      var me = this;
 
-      if (self.width === null) {
-        self.onWindowResize(); //self.width = self.$el.offsetWidth;
+      if (me.width === null) {
+        me.onWindowResize(); //me.width = me.$el.offsetWidth;
 
-        addWindowEventListener('resize', self.onWindowResize);
+        addWindowEventListener("resize", me.onWindowResize);
       }
 
-      compact(self.layout, self.verticalCompact);
-      self.updateHeight();
-      self.$nextTick(function () {
+      compact(me.layout, me.verticalCompact);
+      me.updateHeight();
+      me.$nextTick(function () {
         var erd = elementResizeDetectorMaker({
           strategy: "scroll" //<- For ultra performance.
 
         });
-        erd.listenTo(self.$refs.item, function () {
-          self.onWindowResize();
+        erd.listenTo(me.$el, function () {
+          me.onWindowResize();
         });
       });
     },
     layoutUpdate: function layoutUpdate() {
-      if (this.layout !== undefined) {
-        if (this.layout.length !== this.lastLayoutLength) {
+      var me = this;
+      var layout = me.layout;
+
+      if (layout !== undefined) {
+        if (layout.length !== me.lastLayoutLength) {
           //console.log("### LAYOUT UPDATE!");
-          this.lastLayoutLength = this.layout.length;
+          me.lastLayoutLength = layout.length;
         }
 
-        compact(this.layout, this.verticalCompact);
-        this.eventBus.$emit("updateWidth", this.width);
-        this.updateHeight();
+        compact(layout, me.verticalCompact);
+        me.eventBus.$emit("updateWidth", me.width);
+        me.updateHeight();
       }
     },
     updateHeight: function updateHeight() {
-      this.mergedStyle = {
-        height: this.containerHeight()
+      var me = this; //console.log("mergedStyle updateHeight");
+
+      me.mergedStyle = {
+        height: me.containerHeight()
       };
     },
     onWindowResize: function onWindowResize() {
-      if (this.$refs !== null && this.$refs.item !== null && this.$refs.item !== undefined) {
-        this.width = this.$refs.item.offsetWidth;
-      }
+      var me = this; //if (me.$el) {
+
+      me.width = me.$el.offsetWidth; //}
     },
     containerHeight: function containerHeight() {
-      if (!this.autoSize) return;
-      return bottom(this.layout) * (this.rowHeight + this.margin[1]) + this.margin[1] + 'px';
+      var me = this;
+
+      if (!me.autoSize) {
+        return false;
+      }
+
+      var margin = me.margin[1];
+      return bottom(me.layout) * (me.rowHeight + margin) + margin + "px";
     },
     dragEvent: function dragEvent(eventName, id, x, y, h, w) {
-      if (eventName === "dragmove" || eventName === "dragstart") {
-        this.placeholder.i = id;
-        this.placeholder.x = x;
-        this.placeholder.y = y;
-        this.placeholder.w = w;
-        this.placeholder.h = h;
-        this.$nextTick(function () {
-          this.isDragging = true;
-        }); //this.$broadcast("updateWidth", this.width);
+      var me = this;
 
-        this.eventBus.$emit("updateWidth", this.width);
+      if (eventName === "dragmove" || eventName === "dragstart") {
+        me.placeholder.i = id;
+        me.placeholder.x = x;
+        me.placeholder.y = y;
+        me.placeholder.w = w;
+        me.placeholder.h = h; //me.$nextTick(function() {
+
+        me.isDragging = true; //});
+
+        me.eventBus.$emit("updateWidth", me.width);
       } else {
-        this.$nextTick(function () {
-          this.isDragging = false;
-        });
+        //me.$nextTick(function() {
+        me.isDragging = false; //});
       } //console.log(eventName + " id=" + id + ", x=" + x + ", y=" + y);
 
 
-      var l = getLayoutItem(this.layout, id); //GetLayoutItem sometimes returns null object
+      var l = getLayoutItem(me.layout, id); //GetLayoutItem sometimes returns null object
 
       if (l === undefined || l === null) {
         l = {
@@ -5597,32 +5982,36 @@ var elementResizeDetectorMaker = __webpack_require__("eec4");
       l.x = x;
       l.y = y; // Move the element to the dragged location.
 
-      this.layout = moveElement(this.layout, l, x, y, true);
-      compact(this.layout, this.verticalCompact); // needed because vue can't detect changes on array element properties
+      me.layout = moveElement(me.layout, l, x, y, true);
+      compact(me.layout, me.verticalCompact); // needed because vue can"t detect changes on array element properties
 
-      this.eventBus.$emit("compact");
-      this.updateHeight();
-      if (eventName === 'dragend') this.$emit('layout-updated', this.layout);
+      me.eventBus.$emit("compact");
+      me.updateHeight();
+
+      if (eventName === "dragend") {
+        me.$emit("layout-updated", me.layout);
+      }
     },
     resizeEvent: function resizeEvent(eventName, id, x, y, h, w) {
-      if (eventName === "resizestart" || eventName === "resizemove") {
-        this.placeholder.i = id;
-        this.placeholder.x = x;
-        this.placeholder.y = y;
-        this.placeholder.w = w;
-        this.placeholder.h = h;
-        this.$nextTick(function () {
-          this.isDragging = true;
-        }); //this.$broadcast("updateWidth", this.width);
+      var me = this;
 
-        this.eventBus.$emit("updateWidth", this.width);
+      if (eventName === "resizestart" || eventName === "resizemove") {
+        var placeholder = me.placeholder;
+        placeholder.i = id;
+        placeholder.x = x;
+        placeholder.y = y;
+        placeholder.w = w;
+        placeholder.h = h; //me.$nextTick(function() {
+
+        me.isDragging = true; //});
+
+        me.eventBus.$emit("updateWidth", me.width);
       } else {
-        this.$nextTick(function () {
-          this.isDragging = false;
-        });
+        //me.$nextTick(function() {
+        me.isDragging = false; //});
       }
 
-      var l = getLayoutItem(this.layout, id); //GetLayoutItem sometimes return null object
+      var l = getLayoutItem(me.layout, id); //GetLayoutItem sometimes return null object
 
       if (l === undefined || l === null) {
         l = {
@@ -5633,10 +6022,13 @@ var elementResizeDetectorMaker = __webpack_require__("eec4");
 
       l.h = h;
       l.w = w;
-      compact(this.layout, this.verticalCompact);
-      this.eventBus.$emit("compact");
-      this.updateHeight();
-      if (eventName === 'resizeend') this.$emit('layout-updated', this.layout);
+      compact(me.layout, me.verticalCompact);
+      me.eventBus.$emit("compact");
+      me.updateHeight();
+
+      if (eventName === "resizeend") {
+        me.$emit("layout-updated", me.layout);
+      }
     }
   }
 });
@@ -5656,8 +6048,8 @@ var GridLayoutvue_type_style_index_0_lang_css_ = __webpack_require__("e279");
 
 var GridLayout_component = normalizeComponent(
   components_GridLayoutvue_type_script_lang_js_,
-  GridLayoutvue_type_template_id_43dea452_render,
-  GridLayoutvue_type_template_id_43dea452_staticRenderFns,
+  GridLayoutvue_type_template_id_35456a9f_render,
+  GridLayoutvue_type_template_id_35456a9f_staticRenderFns,
   false,
   null,
   null,
@@ -5671,20 +6063,21 @@ GridLayout_component.options.__file = "GridLayout.vue"
 
 
 
+// import ResponsiveGridLayout from './ResponsiveGridLayout.vue';
 
 
+const VueGridLayout = {
+    // ResponsiveGridLayout,
+    GridLayout: GridLayout,
+    GridItem: GridItem
+}
 
- // import ResponsiveGridLayout from './ResponsiveGridLayout.vue';
+// module.exports = VueGridLayout;
 
-var VueGridLayout = {
-  // ResponsiveGridLayout,
-  GridLayout: GridLayout,
-  GridItem: GridItem // module.exports = VueGridLayout;
-
-};
-Object.keys(VueGridLayout).forEach(function (name) {
-  external_commonjs_vue_commonjs2_vue_root_Vue_default.a.component(name, VueGridLayout[name]);
+Object.keys(VueGridLayout).forEach(name => {
+    external_commonjs_vue_commonjs2_vue_root_Vue_default.a.component(name, VueGridLayout[name]);
 });
+
 /* harmony default export */ var components = (VueGridLayout);
 
 // CONCATENATED MODULE: ./node_modules/@vue/cli-service/lib/commands/build/entry-lib.js
