@@ -156,10 +156,30 @@ export function correctBounds(layout, bounds) {
  * @param  {String} id     ID
  * @return {LayoutItem}    Item at ID.
  */
-export function getLayoutItem(layout, id) {
+/*export function getLayoutItem(layout, propertyName, id) {
   for (let i = 0, len = layout.length; i < len; i++) {
-    if (layout[i].i === id) return layout[i];
+    if (layout[i][propertyName] === id) return layout[i];
   }
+}*/
+
+function getArrayItemIndex(arrayItems, propertyName, searchValue) {
+  let i = arrayItems.length;
+
+  while (i--) {
+    if (arrayItems[i][propertyName] === searchValue) {
+      return i;
+    }
+  }
+  return -1;// Not found
+}
+
+export function getArrayItem(arrayItems, propertyName, searchValue) {
+  const index = getArrayItemIndex(arrayItems, propertyName, searchValue);
+
+  if (index === -1) {
+    return null;// Not found
+  }
+  return arrayItems[index];
 }
 
 /**

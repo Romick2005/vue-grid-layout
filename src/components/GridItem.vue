@@ -210,7 +210,6 @@
 
     mounted() {
       const me = this;
-      console.log("Grid Item mounted!");
       const parent = me.$parent;
       me.cols = parent.colNum;
       me.rowHeight = parent.rowHeight;
@@ -220,7 +219,6 @@
       me.draggable = me.isDraggable === null ? parent.isDraggable : me.isDraggable;
       me.resizable = me.isResizable === null ? parent.isResizable : me.isResizable;
       me.useCssTransforms = parent.useCssTransforms;
-      //console.log("mounted");
       me.createStyle();
     },
 
@@ -479,9 +477,9 @@
           me.fireEvent("resize", gridItemLayout);
         }*/
         if (event.type === "resizeend" && (me.previousW !== me.innerW || me.previousH !== me.innerH)) {
-          me.fireEvent("onResizingEnd", gridItemLayout);
+          me.fireEvent("resizingEnd", gridItemLayout);
         }
-        me.eventBus.$emit("resizeEvent", event.type, me.i, me.innerX, me.innerY, pos.h, pos.w);
+        me.eventBus.$emit("resizeEvent", event.type, me.i, me.innerX, me.innerY, pos.h, pos.w);//todo i replace by id or remove
       },
 
       handleDrag(event) {
@@ -566,12 +564,12 @@
         me.lastY = y;
 
         /*if (me.innerX !== pos.x || me.innerY !== pos.y) {
-          me.$emit("move", me.i, pos.x, pos.y);
+          me.$emit("move", me.id, pos.x, pos.y);
         }
         if (event.type === "dragend" && (me.previousX !== me.innerX || me.previousY !== me.innerY)) {
-          me.$emit("moved", me.i, pos.x, pos.y);
+          me.$emit("moved", me.id, pos.x, pos.y);
         }*/
-        me.eventBus.$emit("dragEvent", event.type, me.i, pos.x, pos.y, me.innerH, me.innerW);
+        me.eventBus.$emit("dragEvent", event.type, me.i, pos.x, pos.y, me.innerH, me.innerW);//todo i replace by id or remove
       },
 
       calcPosition(x, y, w, h) {
@@ -759,7 +757,7 @@
         }
         if (me.previousW !== gridItemLayout.w || me.previousH !== gridItemLayout.h) {
           me.fireEvent("resizingEnd", gridItemLayout);
-          me.eventBus.$emit("resizeEvent", "resizeend", me.i, me.innerX, me.innerY, pos.h, pos.w);
+          me.eventBus.$emit("resizeEvent", "resizeend", me.i, me.innerX, me.innerY, pos.h, pos.w);//todo i replace by id or remove
         }
       },
 

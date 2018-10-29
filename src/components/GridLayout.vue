@@ -10,7 +10,7 @@
       :y="placeholder.y"
       :w="placeholder.w"
       :h="placeholder.h"
-      :i="placeholder.i"
+      :i="placeholder[layoutUniquePropertyName]"
       class="vue-grid-placeholder"/>
   </div>
 </template>
@@ -23,7 +23,7 @@ const elementResizeDetectorMaker = require("element-resize-detector");
 import {
   bottom,
   compact,
-  getLayoutItem,
+  getArrayItem,
   moveElement,
   validateLayout
 } from "../helpers/utils";
@@ -102,6 +102,11 @@ export default {
     layout: {
       type: Array,
       required: true,
+    },
+
+    layoutUniquePropertyName: {
+      type: String,
+      default: "id"
     }
   },
 
@@ -140,7 +145,6 @@ export default {
 
   mounted() {
     const me = this;
-    console.log("Grid Layout mounted");
     //me.$nextTick(function () {
     validateLayout(me.layout);
     //me.$nextTick(function() {
@@ -204,7 +208,7 @@ export default {
 
   methods: {
     onWindowLoad() {
-      console.log("onWindowLoad");
+      //console.log("onWindowLoad");
       const me = this;
 
       if (me.width === null) {
@@ -281,9 +285,9 @@ export default {
         //});
       }
       //console.log(eventName + " id=" + id + ", x=" + x + ", y=" + y);
-      let l = getLayoutItem(me.layout, id);
-      //GetLayoutItem sometimes returns null object
-      if (l === undefined || l === null) {
+      let l = getArrayItem(me.layout, me.layoutUniquePropertyName, id);
+      //getArrayItem sometimes returns null object //todo check
+      if (l === null) {
         l = {
           x: 0,
           y: 0
@@ -321,9 +325,9 @@ export default {
           me.isDragging = false;
         //});
       }
-      let l = getLayoutItem(me.layout, id);
-      //GetLayoutItem sometimes return null object
-      if (l === undefined || l === null) {
+      let l = getArrayItem(me.layout, me.layoutUniquePropertyName, id);
+      //getArrayItem sometimes return null object
+      if (l === null) {
         l = {
           h: 0,
           w: 0
